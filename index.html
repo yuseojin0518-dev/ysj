@@ -60,12 +60,6 @@
           로그인
         </button>
       </form>
-      
-      <!-- Firebase 설정 안내 메시지 -->
-      <div id="firebase-warning" class="mt-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-bold hidden text-center border border-red-200">
-        <i class="fa-solid fa-triangle-exclamation mb-2 text-xl block"></i>
-        소스 코드(HTML)를 열어 Firebase 키를 입력해야 작동합니다. (GitHub 연동 필수)
-      </div>
     </div>
   </div>
 
@@ -281,35 +275,23 @@
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    /* ========================================================
-       🔥 필수 설정: 여기에 Firebase에서 발급받은 키를 붙여넣으세요! 🔥
-       ======================================================== */
-    const myFirebaseConfig = {
-      // apiKey: "AIzaSyXXXXXXXXXXXX",
-      // authDomain: "your-project.firebaseapp.com",
-      // projectId: "your-project",
-      // storageBucket: "your-project.appspot.com",
-      // messagingSenderId: "123456789",
-      // appId: "1:123456789:web:abcdefg"
-    };
-
-    // GitHub 호스팅용 앱 식별자 (변경하지 마세요)
-    const appId = 'smart-meal-pass'; 
+  <script>
+    // GitHub 호스팅 및 브라우저 자체 저장소(LocalStorage) 사용 버전
     const todayStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '').replace(/\s/g, '');
     
-    let db, auth;
     let currentUser = null;
-    let isDbConnected = false;
     
-    window.allUsers = [];
-    window.allAttendance = [];
-    window.todayAttendance = [];
+    // LocalStorage에서 데이터 불러오기 (없으면 빈 배열)
+    window.allUsers = JSON.parse(localStorage.getItem('mealPass_users')) || [];
+    window.allAttendance = JSON.parse(localStorage.getItem('mealPass_attendance')) || [];
+    window.todayAttendance = window.allAttendance.filter(a => a.date === todayStr);
     window.statViewMode = 'ate'; // 'ate' or 'notAte'
+
+    // 데이터 저장 함수
+    function saveData() {
+      localStorage.setItem('mealPass_users', JSON.stringify(window.allUsers));
+      localStorage.setItem('mealPass_attendance', JSON.stringify(window.allAttendance));
+    }
 
     // UI Elements
     const toastEl = document.getElementById('toast');
@@ -338,106 +320,53 @@
     }
 
     /* ========================================================
-       Firebase Cloud Initialization (순수 GitHub 맞춤형)
-       ======================================================== */
-    async function initCloudDatabase() {
-      // 키가 입력되지 않은 경우 강력한 경고 표시
-      if (!myFirebaseConfig.apiKey || myFirebaseConfig.apiKey.includes("AIzaSyXXXXXXXXXXXX")) {
-        document.getElementById('firebase-warning').classList.remove('hidden');
-        loginBtn.disabled = true;
-        loginBtn.className = "w-full bg-gray-400 text-white font-bold py-4 px-4 rounded-2xl mt-4 text-lg cursor-not-allowed";
-        return;
-      }
-
-      try {
-        const app = initializeApp(myFirebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-
-        // 익명 로그인(Anonymous Auth) 사용
-        await signInAnonymously(auth);
-        isDbConnected = true;
-        
-        setupRealtimeSync();
-      } catch(e) {
-        console.error("Firebase 초기화 에러:", e);
-        showToast("데이터베이스 연결 실패. Firebase 설정과 익명 로그인 활성화 여부를 확인하세요.", "error");
-      }
-    }
-
-    /* ========================================================
-       Realtime Data Sync (onSnapshot)
-       ======================================================== */
-    function setupRealtimeSync() {
-      if (!auth.currentUser) return;
-
-      // 학생 정보 실시간 동기화
-      const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'meal_users');
-      onSnapshot(usersRef, (snapshot) => {
-        window.allUsers = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-        if (currentUser?.role === 'admin') {
-          renderStudentsTable();
-          renderStats();
-          updateTestStudentSelect();
-        }
-      }, (error) => console.error(error));
-
-      // 출석(식사) 정보 실시간 동기화
-      const attRef = collection(db, 'artifacts', appId, 'public', 'data', 'meal_attendance');
-      onSnapshot(attRef, (snapshot) => {
-        window.allAttendance = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-        window.todayAttendance = window.allAttendance.filter(a => a.date === todayStr);
-        
-        if (currentUser?.role === 'admin') {
-          renderStats();
-        } else if (currentUser?.role === 'student') {
-          updateStudentUI();
-        }
-      }, (error) => console.error(error));
-    }
-
-    /* ========================================================
-       Firestore Write Operations (데이터 쓰기/삭제)
+       로컬 데이터베이스 연산 (Write Operations)
        ======================================================== */
     window.dbAddUser = async function(userObj) {
-      if (!isDbConnected || !auth.currentUser) return { success: false, msg: 'DB 연결 안됨' };
       if (window.allUsers.some(u => u.id === userObj.id)) return { success: false, msg: '이미 존재하는 학번입니다.' };
       
-      try {
-        const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'meal_users');
-        await addDoc(usersRef, { role: 'student', ...userObj });
-        return { success: true };
-      } catch(e) { 
-        console.error(e);
-        return { success: false, msg: '데이터베이스 쓰기 권한이 없습니다. (Firestore 규칙 확인 필요)' }; 
+      const newUser = { docId: Date.now().toString(), role: 'student', ...userObj };
+      window.allUsers.push(newUser);
+      saveData();
+      
+      if (currentUser?.role === 'admin') {
+        renderStudentsTable();
+        renderStats();
+        updateTestStudentSelect();
       }
+      return { success: true };
     }
 
     window.dbDeleteUser = async function(docId) {
-      if (!isDbConnected || !auth.currentUser) return;
-      try {
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'meal_users', docId));
-        showToast('학생 정보가 삭제되었습니다.');
-      } catch(e) { showToast('삭제 실패. 권한을 확인하세요.', 'error'); }
+      window.allUsers = window.allUsers.filter(u => u.docId !== docId);
+      saveData();
+      
+      renderStudentsTable();
+      renderStats();
+      updateTestStudentSelect();
+      showToast('학생 정보가 삭제되었습니다.');
     }
 
     window.dbAddAttendance = async function(studentId) {
-      if (!isDbConnected || !auth.currentUser) return false;
       if (window.todayAttendance.some(a => a.studentId === studentId)) return false;
       
-      try {
-        const attRef = collection(db, 'artifacts', appId, 'public', 'data', 'meal_attendance');
-        await addDoc(attRef, { studentId, date: todayStr, timestamp: Date.now() });
-        return true;
-      } catch(e) { return false; }
+      const newRecord = { docId: Date.now().toString(), studentId, date: todayStr, timestamp: Date.now() };
+      window.allAttendance.push(newRecord);
+      window.todayAttendance.push(newRecord);
+      saveData();
+      
+      if (currentUser?.role === 'admin') renderStats();
+      if (currentUser?.role === 'student') updateStudentUI();
+      return true;
     }
 
     window.dbDeleteAttendance = async function(docId) {
-      if (!isDbConnected || !auth.currentUser) return;
-      try {
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'meal_attendance', docId));
-        showToast('식사 확인이 취소되었습니다.', 'success');
-      } catch(e) { showToast('취소 실패', 'error'); }
+      window.allAttendance = window.allAttendance.filter(a => a.docId !== docId);
+      window.todayAttendance = window.todayAttendance.filter(a => a.docId !== docId);
+      saveData();
+      
+      if (currentUser?.role === 'admin') renderStats();
+      showToast('식사 확인이 취소되었습니다.', 'success');
     }
 
     /* ========================================================
@@ -445,17 +374,6 @@
        ======================================================== */
     document.getElementById('login-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      
-      // 설정 키가 없으면 에러
-      if (!myFirebaseConfig.apiKey || myFirebaseConfig.apiKey.includes("AIzaSyXXXXXXXXXXXX")) {
-        showToast('소스 코드에 Firebase 키를 먼저 입력해주세요.', 'error');
-        return;
-      }
-
-      if (!isDbConnected) {
-        showToast('서버 연결 중입니다. 잠시 후 다시 시도해주세요.', 'error');
-        return;
-      }
 
       const id = document.getElementById('login-id').value.trim();
       const pw = document.getElementById('login-pw').value.trim();
@@ -843,8 +761,6 @@
       }
       timeBar.style.width = `${(secondsLeft / 60) * 100}%`;
     }
-
-    initCloudDatabase();
 
   </script>
 </body>
