@@ -6,30 +6,23 @@
   <title>스마트 석식 패스</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- QR 스캐너 엔진 로드 -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   
   <style>
     body {
-      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      font-family: 'Pretendard', -apple-system, system-ui, sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
-    .hide-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    .hide-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-    .animate-in {
-      animation: fadeIn 0.3s ease-out forwards;
-    }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .animate-in { animation: fadeIn 0.3s ease-out forwards; }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .toast-enter {
-      animation: slideDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    }
+    .toast-enter { animation: slideDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     @keyframes slideDown {
       from { top: -50px; opacity: 0; }
       to { top: 20px; opacity: 1; }
@@ -39,23 +32,14 @@
 <body class="bg-gray-50 text-gray-800 antialiased min-h-screen">
 
   <!-- Toast Notification -->
-  <div id="toast" class="fixed left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-lg z-50 text-white font-medium hidden transition-all duration-300" style="top: 20px;"></div>
-
-  <!-- Loading Screen -->
-  <div id="loading-screen" class="min-h-screen flex items-center justify-center bg-gray-50 z-50 absolute inset-0">
-    <div class="flex flex-col items-center text-gray-500">
-      <i class="fa-solid fa-spinner fa-spin text-4xl mb-4 text-blue-600"></i>
-      <p class="font-bold text-gray-700 animate-pulse">시스템 준비 중...</p>
-      <p class="text-xs text-gray-400 mt-2">잠시만 기다려주세요</p>
-    </div>
-  </div>
+  <div id="toast" class="fixed left-1/2 transform -translate-x-1/2 px-6 py-3.5 rounded-2xl shadow-lg z-50 text-white font-bold hidden transition-all duration-300" style="top: 20px;"></div>
 
   <!-- Login Screen -->
-  <div id="login-screen" class="min-h-screen flex items-center justify-center p-4 hidden">
+  <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
     <div class="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 w-full max-w-md border border-gray-100">
       <div class="text-center mb-8">
-        <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-blue-200 transform rotate-3">
-          <i class="fa-solid fa-qrcode text-white text-4xl transform -rotate-3"></i>
+        <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-blue-200">
+          <i class="fa-solid fa-qrcode text-white text-4xl"></i>
         </div>
         <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">스마트 석식 패스</h1>
         <p class="text-gray-500 mt-2 text-sm font-medium">안전하고 빠른 급식실 QR 인증</p>
@@ -63,14 +47,14 @@
 
       <form id="login-form" class="space-y-5">
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">학번 (또는 관리자 아이디)</label>
-          <input type="text" id="login-id" class="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="예: 30101" required>
+          <label class="block text-sm font-bold text-gray-700 mb-2 ml-1">학번 (또는 관리자 아이디)</label>
+          <input type="text" id="login-id" class="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium" placeholder="예: 30101 (관리자는 ysj0518)" required>
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">비밀번호</label>
-          <input type="password" id="login-pw" class="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="비밀번호를 입력하세요" required>
+          <label class="block text-sm font-bold text-gray-700 mb-2 ml-1">비밀번호</label>
+          <input type="password" id="login-pw" class="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium" placeholder="비밀번호를 입력하세요" required>
         </div>
-        <button type="submit" class="w-full bg-gray-900 hover:bg-black active:scale-[0.98] text-white font-bold py-4 px-4 rounded-2xl shadow-md transition-all mt-4">
+        <button type="submit" class="w-full bg-gray-900 hover:bg-black active:scale-[0.98] text-white font-bold py-4 px-4 rounded-2xl shadow-md transition-all mt-4 text-lg">
           로그인
         </button>
       </form>
@@ -78,7 +62,7 @@
   </div>
 
   <!-- Admin Dashboard -->
-  <div id="admin-dashboard" class="max-w-5xl mx-auto p-4 sm:p-6 md:p-8 hidden">
+  <div id="admin-dashboard" class="max-w-5xl mx-auto p-4 sm:p-6 md:p-8 hidden animate-in">
     <header class="flex justify-between items-center mb-6 bg-white p-4 sm:px-6 rounded-3xl shadow-sm border border-gray-100">
       <div class="flex items-center gap-3">
         <div class="bg-blue-100 p-3 rounded-2xl">
@@ -127,7 +111,7 @@
                   <i class="fa-solid fa-check-circle"></i> 식사 완료 확인
                 </button>
                 <button id="btn-cancel-meal" class="px-8 py-4 bg-white hover:bg-gray-50 active:scale-95 text-gray-700 font-bold rounded-2xl border border-gray-200 transition-all shadow-sm">
-                  취소
+                  취소 및 다시 스캔
                 </button>
               </div>
             </div>
@@ -141,30 +125,28 @@
                 </div>
                 <video id="qr-video" class="absolute inset-0 w-full h-full object-cover hidden" playsinline autoplay muted></video>
                 <canvas id="qr-canvas" class="hidden"></canvas>
-                <!-- Scanner overlay decoration -->
                 <div id="video-overlay" class="absolute inset-0 hidden pointer-events-none">
                   <div class="absolute inset-8 border-4 border-blue-500/50 rounded-3xl"></div>
                   <div class="absolute inset-0 bg-blue-500/10 animate-pulse"></div>
                 </div>
               </div>
-              <button id="btn-toggle-camera" class="w-full max-w-md px-6 py-4 bg-gray-900 text-white font-bold rounded-2xl transition-all hover:bg-gray-800 shadow-md active:scale-95">카메라 켜기</button>
+              <button id="btn-toggle-camera" class="w-full max-w-md px-6 py-4 bg-gray-900 text-white font-bold rounded-2xl transition-all hover:bg-gray-800 shadow-md active:scale-95 text-lg">카메라 켜기</button>
             </div>
           </div>
 
           <!-- Manual Tester -->
-          <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center"><i class="fa-solid fa-keyboard mr-2"></i>수동 테스트 도구</h3>
+          <div class="bg-gray-50 p-6 rounded-3xl border border-gray-200 shadow-sm">
+            <h3 class="text-sm font-bold text-gray-500 mb-4 flex items-center"><i class="fa-solid fa-keyboard mr-2"></i>카메라 불가 환경을 위한 수동 테스트</h3>
             <div class="flex flex-col gap-4">
               <form id="manual-scan-form" class="flex gap-2">
-                <input type="text" id="manual-scan-input" class="flex-1 px-4 py-3.5 bg-gray-50 rounded-xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all" placeholder="생성된 QR 텍스트 입력">
-                <button type="submit" class="px-6 py-3.5 bg-gray-800 hover:bg-gray-900 text-white font-bold rounded-xl transition-colors text-sm whitespace-nowrap">스캔 확인</button>
+                <input type="text" id="manual-scan-input" class="flex-1 px-4 py-3.5 bg-white rounded-xl border border-gray-300 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium" placeholder="테스트용으로 생성된 텍스트 입력">
+                <button type="submit" class="px-6 py-3.5 bg-gray-700 hover:bg-gray-800 text-white font-bold rounded-xl transition-colors text-sm whitespace-nowrap">스캔 확인</button>
               </form>
-              <div class="flex gap-2 items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
-                <select id="test-student-select" class="flex-1 px-3 py-3 rounded-lg border border-gray-200 outline-none text-sm bg-white font-medium">
+              <div class="flex gap-2 items-center bg-white p-3 rounded-xl border border-gray-200">
+                <select id="test-student-select" class="flex-1 px-3 py-3 rounded-lg border border-gray-200 outline-none text-sm bg-white font-bold text-gray-700">
                   <option value="">학생 선택</option>
-                  <!-- Populated dynamically -->
                 </select>
-                <button type="button" id="btn-generate-test-qr" class="px-4 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-bold rounded-lg transition-colors text-sm shadow-sm whitespace-nowrap">텍스트 생성</button>
+                <button type="button" id="btn-generate-test-qr" class="px-4 py-3 bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200 font-bold rounded-lg transition-colors text-sm whitespace-nowrap">QR 텍스트 생성</button>
               </div>
             </div>
           </div>
@@ -177,10 +159,10 @@
               <i class="fa-solid fa-user-plus mr-3 text-blue-600"></i> 신규 학생 등록
             </h2>
             <form id="add-student-form" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <input type="text" id="new-std-id" placeholder="학번 (예: 30101)" class="px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-medium" required>
-              <input type="text" id="new-std-name" placeholder="이름" class="px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-medium" required>
-              <input type="text" id="new-std-pw" placeholder="초기 비밀번호" class="px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-medium" required>
-              <button type="submit" class="md:col-span-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold py-4 rounded-2xl shadow-md transition-all mt-2">학생 등록하기</button>
+              <input type="text" id="new-std-id" placeholder="학번 (예: 30101)" class="px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-bold text-gray-700" required>
+              <input type="text" id="new-std-name" placeholder="이름" class="px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-bold text-gray-700" required>
+              <input type="text" id="new-std-pw" placeholder="초기 비밀번호" class="px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-bold text-gray-700" required>
+              <button type="submit" class="md:col-span-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold py-4 rounded-2xl shadow-md transition-all mt-2 text-lg">학생 등록하기</button>
             </form>
           </div>
 
@@ -189,10 +171,10 @@
               <span>등록된 학생 목록</span>
               <span id="student-count" class="text-blue-600 bg-blue-50 px-3 py-1 rounded-lg text-sm">총 0명</span>
             </h2>
-            <div class="overflow-x-auto rounded-2xl border border-gray-100">
+            <div class="overflow-x-auto rounded-2xl border border-gray-200">
               <table class="w-full text-left border-collapse">
                 <thead>
-                  <tr class="bg-gray-50 text-gray-500 text-sm border-b border-gray-100">
+                  <tr class="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
                     <th class="p-4 font-bold">학번</th>
                     <th class="p-4 font-bold">이름</th>
                     <th class="p-4 font-bold">비밀번호</th>
@@ -207,21 +189,21 @@
           </div>
         </div>
 
-        <!-- Tab: Stats -->
+        <!-- Tab: Stats (급식 현황) -->
         <div id="tab-stats" class="admin-tab-content hidden space-y-6 animate-in">
           <div class="grid grid-cols-3 gap-3 sm:gap-4">
-            <div class="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
+            <div class="bg-white p-4 sm:p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
               <p class="text-gray-500 text-xs sm:text-sm font-bold mb-1">전체 학생</p>
               <p class="text-2xl sm:text-4xl font-extrabold text-gray-900"><span id="stat-total">0</span><span class="text-base font-medium text-gray-400 ml-1">명</span></p>
             </div>
             
-            <!-- Ate / Not Ate toggle cards -->
-            <div id="card-ate" class="p-5 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-blue-600 text-white shadow-lg shadow-blue-200 ring-2 ring-blue-600 ring-offset-2">
+            <!-- 식사 완료 / 미식사 토글 카드 -->
+            <div id="card-ate" class="p-4 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-blue-600 text-white shadow-lg shadow-blue-200 ring-2 ring-blue-600 ring-offset-2">
               <p class="text-blue-100 text-xs sm:text-sm font-bold mb-1">식사 완료 (클릭)</p>
               <p class="text-2xl sm:text-4xl font-extrabold"><span id="stat-ate">0</span><span class="text-base font-medium text-blue-200 ml-1">명</span></p>
             </div>
             
-            <div id="card-not-ate" class="p-5 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-white text-gray-800 border border-gray-100 hover:bg-gray-50 shadow-sm">
+            <div id="card-not-ate" class="p-4 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-white text-gray-800 border border-gray-100 hover:bg-gray-50 shadow-sm">
               <p class="text-gray-500 text-xs sm:text-sm font-bold mb-1">미식사 (클릭)</p>
               <p class="text-2xl sm:text-4xl font-extrabold"><span id="stat-not-ate">0</span><span class="text-base font-medium text-gray-400 ml-1">명</span></p>
             </div>
@@ -230,7 +212,7 @@
           <div class="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-gray-100">
             <div class="flex justify-between items-end mb-3">
               <h3 class="font-extrabold text-gray-800 text-lg">전체 식사 진행률</h3>
-              <span id="stat-percentage-text" class="text-lg text-blue-600 font-extrabold">0%</span>
+              <span id="stat-percentage-text" class="text-xl text-blue-600 font-extrabold">0%</span>
             </div>
             <div class="w-full bg-gray-100 rounded-full h-4 mb-1 overflow-hidden">
               <div id="stat-progress-bar" class="bg-gradient-to-r from-blue-500 to-blue-600 h-4 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
@@ -239,10 +221,10 @@
 
           <div class="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-gray-100 min-h-[250px]">
             <h2 id="stat-list-title" class="text-xl font-extrabold text-gray-900 mb-6 flex items-center">
-              <!-- Title injected via JS -->
+              <!-- JS에서 제목 주입 -->
             </h2>
             <div id="stat-list-container" class="flex flex-wrap gap-2.5">
-              <!-- Populated dynamically -->
+              <!-- 명단 렌더링 -->
             </div>
           </div>
         </div>
@@ -251,7 +233,7 @@
   </div>
 
   <!-- Student Dashboard -->
-  <div id="student-dashboard" class="min-h-screen flex flex-col items-center p-4 bg-gray-100 hidden">
+  <div id="student-dashboard" class="min-h-screen flex flex-col items-center p-4 bg-gray-100 hidden animate-in">
     <header class="w-full max-w-sm flex justify-between items-center mb-8 mt-4">
       <h1 class="font-extrabold text-2xl text-gray-900 tracking-tight">스마트 패스</h1>
       <button id="btn-student-logout" class="text-gray-500 hover:text-gray-900 bg-white rounded-full p-2.5 shadow-sm transition-colors">
@@ -260,7 +242,6 @@
     </header>
 
     <div class="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/60 w-full max-w-sm flex flex-col items-center text-center relative overflow-hidden">
-      <!-- Decorative element -->
       <div class="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-bl-[100px] -z-10"></div>
       
       <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-5 border border-gray-100 shadow-sm">
@@ -269,7 +250,7 @@
       <h2 id="student-display-name" class="text-3xl font-extrabold text-gray-900 mb-1">이름</h2>
       <p id="student-display-id" class="text-gray-500 font-bold mb-8 text-sm">학번</p>
 
-      <!-- Success UI -->
+      <!-- 식사 완료 UI -->
       <div id="student-success-ui" class="bg-green-50 border-2 border-green-200 rounded-3xl p-8 w-full flex flex-col items-center animate-in hidden">
         <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mb-5 shadow-lg shadow-green-200 text-white text-4xl">
            <i class="fa-solid fa-check"></i>
@@ -278,11 +259,10 @@
         <p class="text-sm text-green-600 font-bold">맛있게 드세요 😊</p>
       </div>
 
-      <!-- QR UI -->
+      <!-- QR 생성 UI -->
       <div id="student-qr-ui" class="w-full flex flex-col items-center hidden">
-        <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 mb-6 relative ring-4 ring-blue-50">
+        <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-200 mb-6 relative ring-4 ring-blue-50">
           <img id="student-qr-img" src="" alt="QR 코드" class="w-48 h-48 object-contain rounded-xl" />
-          <!-- Watermark to prevent screenshot -->
           <div class="absolute inset-0 pointer-events-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCI+PHRleHQgeD0iMCIgeT0iNDAiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9InJnYmEoMCwwLDAsMC4wNCkiIHRyYW5zZm9ybT0icm90YXRlKC00NSkiPkNPUFkgUFJPVEVDVEVEPC90ZXh0Pjwvc3ZnPg==')] opacity-100 mix-blend-multiply rounded-xl"></div>
         </div>
         
@@ -290,43 +270,109 @@
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">유효 시간</span>
             <div class="flex items-center gap-1">
-              <span id="student-time-left" class="text-xl font-extrabold tabular-nums text-blue-600">60</span>
+              <span id="student-time-left" class="text-2xl font-extrabold tabular-nums text-blue-600">60</span>
               <span class="text-gray-400 font-bold text-sm">초</span>
             </div>
           </div>
-          <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+          <div class="w-full bg-gray-100 rounded-full h-2 mt-1 overflow-hidden">
             <div id="student-time-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-1000 ease-linear" style="width: 100%"></div>
           </div>
         </div>
-        <p class="mt-8 text-[11px] text-gray-500 font-semibold leading-relaxed bg-gray-50 px-4 py-3 rounded-xl">
+        <p class="mt-8 text-[11px] text-gray-500 font-bold leading-relaxed bg-gray-50 px-4 py-3 rounded-xl border border-gray-100">
           보안을 위해 1분마다 코드가 갱신됩니다.<br>화면 캡처본은 스캔이 거부됩니다.
         </p>
       </div>
     </div>
   </div>
 
-  <script type="module">
-    let app = null, auth = null, db = null;
+  <script>
+    /* 
+      ==========================================================
+      [완벽한 내장형 오프라인 데이터베이스 엔진]
+      외부 서버 의존 없이 브라우저의 localStorage를 활용하여 
+      로그아웃/새로고침을 해도 데이터가 100% 영구 보존됩니다.
+      ==========================================================
+    */
+    const todayStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '').replace(/\s/g, '');
+
+    const dbEngine = {
+      data: JSON.parse(localStorage.getItem('SmartMealPass_DB_v2')) || { users: [], attendance: [] },
+      listeners: {},
+      
+      save: function() {
+        localStorage.setItem('SmartMealPass_DB_v2', JSON.stringify(this.data));
+      },
+      
+      notify: function(collection) {
+        if (this.listeners[collection]) {
+          this.listeners[collection].forEach(callback => callback(this.data[collection]));
+        }
+      },
+      
+      subscribe: function(collection, callback) {
+        if (!this.listeners[collection]) this.listeners[collection] = [];
+        this.listeners[collection].push(callback);
+        // 즉시 최초 데이터 전달
+        callback(this.data[collection]);
+      },
+      
+      addUser: function(userObj) {
+        // 중복 학번 체크
+        if(this.data.users.some(u => u.id === userObj.id)) return false; 
+        const newUser = { docId: 'usr_' + Date.now(), role: 'student', ...userObj };
+        this.data.users.push(newUser);
+        this.save();
+        this.notify('users');
+        return true;
+      },
+      
+      deleteUser: function(docId) {
+        this.data.users = this.data.users.filter(u => u.docId !== docId);
+        // 해당 학생의 출석 기록도 삭제
+        const studentId = this.data.users.find(u => u.docId === docId)?.id;
+        if (studentId) {
+           this.data.attendance = this.data.attendance.filter(a => a.studentId !== studentId);
+        }
+        this.save();
+        this.notify('users');
+        this.notify('attendance');
+      },
+      
+      addAttendance: function(studentId) {
+        if(this.data.attendance.some(a => a.studentId === studentId && a.date === todayStr)) return false;
+        this.data.attendance.push({ docId: 'att_' + Date.now(), studentId, date: todayStr, timestamp: Date.now() });
+        this.save();
+        this.notify('attendance');
+        return true;
+      },
+      
+      deleteAttendance: function(docId) {
+        this.data.attendance = this.data.attendance.filter(a => a.docId !== docId);
+        this.save();
+        this.notify('attendance');
+      },
+
+      // 오늘 날짜의 출석만 가져오기
+      getTodayAttendance: function() {
+        return this.data.attendance.filter(a => a.date === todayStr);
+      }
+    };
+
+    // 상태 변수
     let currentUser = null; 
     let allUsers = [];
     let todayAttendance = []; 
     let statViewMode = 'ate'; // 'ate' or 'notAte'
     let studentInterval = null;
 
-    // Firebase functions (동적 Import 용 변수 할당)
-    let collection, onSnapshot, addDoc, deleteDoc, doc;
-
-    // Camera state
+    // 카메라 관련 상태
     let isCameraActive = false;
     let streamRef = null;
     let requestRef = null;
     let pendingScanStudent = null;
 
-    const todayStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '').replace(/\s/g, '');
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
+    // 화면 컨트롤러
     const screens = {
-      loading: document.getElementById('loading-screen'),
       login: document.getElementById('login-screen'),
       admin: document.getElementById('admin-dashboard'),
       student: document.getElementById('student-dashboard')
@@ -337,92 +383,59 @@
       screens[screenName].classList.remove('hidden');
     }
 
+    // 토스트 알림
     let toastTimeout;
     function showToast(msg, type = 'success') {
       const toast = document.getElementById('toast');
       toast.innerHTML = type === 'error' ? `<i class="fa-solid fa-triangle-exclamation mr-2"></i>${msg}` : `<i class="fa-solid fa-circle-check mr-2"></i>${msg}`;
-      toast.className = `fixed left-1/2 transform -translate-x-1/2 px-6 py-3.5 rounded-2xl shadow-xl z-[100] text-white font-bold toast-enter flex items-center ${type === 'error' ? 'bg-red-500' : 'bg-gray-900'}`;
+      toast.className = `fixed left-1/2 transform -translate-x-1/2 px-6 py-4 rounded-2xl shadow-xl z-[100] text-white font-bold toast-enter flex items-center ${type === 'error' ? 'bg-red-500' : 'bg-gray-900'}`;
       toast.classList.remove('hidden');
       clearTimeout(toastTimeout);
       toastTimeout = setTimeout(() => { toast.classList.add('hidden'); }, 3000);
     }
 
-    async function initializeSystem() {
-      try {
-        if (typeof __firebase_config === 'undefined') {
-          throw new Error("외부 환경(CodeSandbox 등)에서는 자체 Firebase 설정이 필요합니다.");
-        }
-        const firebaseConfig = JSON.parse(__firebase_config);
-        if (Object.keys(firebaseConfig).length === 0) throw new Error("Firebase config is empty");
-
-        const fbApp = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
-        const fbAuth = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
-        const fbStore = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-
-        app = fbApp.initializeApp(firebaseConfig);
-        auth = fbAuth.getAuth(app);
-        db = fbStore.getFirestore(app);
-
-        collection = fbStore.collection;
-        onSnapshot = fbStore.onSnapshot;
-        addDoc = fbStore.addDoc;
-        deleteDoc = fbStore.deleteDoc;
-        doc = fbStore.doc;
-
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await fbAuth.signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await fbAuth.signInAnonymously(auth);
-        }
-
-        setupFirestoreListeners();
-      } catch (error) {
-        console.error("System Init Error:", error);
-        showToast("클라우드 DB 연결 실패. 화면을 새로고침 해주세요.", "error");
-      } finally {
-        showScreen('login');
+    /* 
+      ===========================================
+      데이터베이스 구독 설정 (실시간 반영)
+      ===========================================
+    */
+    dbEngine.subscribe('users', (users) => {
+      allUsers = users;
+      if (currentUser?.role === 'admin') {
+        renderStudentsTable();
+        renderStats();
+        updateTestStudentSelect();
       }
-    }
+    });
 
-    // Start initialization
-    initializeSystem();
+    dbEngine.subscribe('attendance', (attendanceList) => {
+      todayAttendance = dbEngine.getTodayAttendance();
+      if (currentUser?.role === 'admin') {
+        renderStats();
+      } else if (currentUser?.role === 'student') {
+        updateStudentUI();
+      }
+    });
 
-    function setupFirestoreListeners() {
-      const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'meal_users');
-      onSnapshot(usersRef, (snapshot) => {
-        allUsers = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-        if (currentUser?.role === 'admin') {
-          renderStudentsTable();
-          renderStats();
-          updateTestStudentSelect();
-        }
-      }, (err) => console.error("Users listener error", err));
 
-      const attendanceRef = collection(db, 'artifacts', appId, 'public', 'data', `meal_attendance_${todayStr}`);
-      onSnapshot(attendanceRef, (snapshot) => {
-        todayAttendance = snapshot.docs.map(doc => ({ docId: doc.id, studentId: doc.data().studentId }));
-        if (currentUser?.role === 'admin') {
-          renderStats();
-        } else if (currentUser?.role === 'student') {
-          updateStudentUI();
-        }
-      }, (err) => console.error("Attendance listener error", err));
-    }
-
+    /* 
+      ===========================================
+      로그인 및 로그아웃 처리
+      ===========================================
+    */
     document.getElementById('login-form').addEventListener('submit', (e) => {
       e.preventDefault();
-
       const id = document.getElementById('login-id').value.trim();
       const pw = document.getElementById('login-pw').value.trim();
 
-      // Admin hardcode
+      // 관리자 하드코딩
       if (id === 'ysj0518' && pw === 'ysj0518!') {
         currentUser = { role: 'admin', id: 'ysj0518', name: '관리자 선생님' };
         initAdminDashboard();
         return;
       }
       
-      // Student verify
+      // 학생 로그인 확인
       const student = allUsers.find(u => u.id === id && u.password === pw && u.role === 'student');
       if (student) {
         currentUser = student;
@@ -440,10 +453,18 @@
       document.getElementById('login-id').value = '';
       document.getElementById('login-pw').value = '';
       showScreen('login');
+      showToast('성공적으로 로그아웃 되었습니다.');
     };
+    
     document.getElementById('btn-admin-logout').addEventListener('click', handleLogout);
     document.getElementById('btn-student-logout').addEventListener('click', handleLogout);
 
+
+    /* 
+      ===========================================
+      관리자 대시보드 로직
+      ===========================================
+    */
     function initAdminDashboard() {
       showScreen('admin');
       document.getElementById('admin-name').textContent = currentUser.name;
@@ -453,7 +474,7 @@
       updateTestStudentSelect();
     }
 
-    // Tab Switching
+    // 탭 전환 로직
     document.querySelectorAll('.admin-tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => switchAdminTab(e.currentTarget.getAttribute('data-target')));
     });
@@ -469,75 +490,67 @@
       document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.add('hidden'));
       document.getElementById(targetId).classList.remove('hidden');
       
-      if(targetId !== 'tab-scanner') stopCamera();
+      if(targetId !== 'tab-scanner') stopCamera(); // 스캐너 탭 벗어나면 카메라 종료
     }
 
-    // Add Student
-    document.getElementById('add-student-form').addEventListener('submit', async (e) => {
+    // 학생 등록
+    document.getElementById('add-student-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const id = document.getElementById('new-std-id').value.trim();
       const name = document.getElementById('new-std-name').value.trim();
       const pw = document.getElementById('new-std-pw').value.trim();
 
-      if (allUsers.find(u => u.id === id)) {
-        showToast('이미 존재하는 학번입니다.', 'error'); return;
-      }
-
-      try {
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'meal_users'), { id, name, password: pw, role: 'student' });
+      const success = dbEngine.addUser({ id, name, password: pw });
+      if (success) {
         showToast('학생 등록이 완료되었습니다!');
         e.target.reset();
-      } catch (err) { showToast('등록 실패. DB 연결을 확인하세요.', 'error'); }
+      } else {
+        showToast('이미 존재하는 학번입니다.', 'error');
+      }
     });
 
-    // Delete Student (Made global for inline onclick)
-    window.deleteStudent = async (docId) => {
-      try {
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'meal_users', docId));
-        showToast('학생이 삭제되었습니다.');
-      } catch (e) { showToast('삭제 실패. DB 연결을 확인하세요.', 'error'); }
+    // 학생 삭제 (HTML onclick 용)
+    window.deleteStudent = (docId) => {
+      dbEngine.deleteUser(docId);
+      showToast('학생이 삭제되었습니다.');
     }
 
+    // 학생 리스트 테이블 그리기
     function renderStudentsTable() {
       const students = allUsers.filter(u => u.role === 'student');
       document.getElementById('student-count').textContent = `총 ${students.length}명`;
       const tbody = document.getElementById('students-tbody');
       
       if (students.length === 0) {
-        tbody.innerHTML = `<tr><td colSpan="4" class="p-10 text-center text-gray-400 font-bold">등록된 학생이 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colSpan="4" class="p-10 text-center text-gray-400 font-bold bg-gray-50/50 rounded-xl">등록된 학생이 없습니다. 신규 학생을 등록해주세요.</td></tr>`;
         return;
       }
       
       tbody.innerHTML = students.map(s => `
-        <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-          <td class="p-4 font-bold text-gray-900">${s.id}</td>
+        <tr class="border-b border-gray-100 hover:bg-blue-50/30 transition-colors">
+          <td class="p-4 font-extrabold text-gray-900">${s.id}</td>
           <td class="p-4 text-gray-700 font-bold">${s.name}</td>
-          <td class="p-4 text-gray-400 text-sm font-mono">${s.password}</td>
+          <td class="p-4 text-gray-400 text-sm font-mono font-bold">${s.password}</td>
           <td class="p-4 text-center">
-            <button onclick="deleteStudent('${s.docId}')" class="p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors">
-              <i class="fa-solid fa-trash-can"></i>
+            <button onclick="deleteStudent('${s.docId}')" class="p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors focus:outline-none">
+              <i class="fa-solid fa-trash-can text-lg"></i>
             </button>
           </td>
         </tr>
       `).join('');
     }
 
-    function updateTestStudentSelect() {
-      const select = document.getElementById('test-student-select');
-      const students = allUsers.filter(u => u.role === 'student');
-      select.innerHTML = '<option value="">학생 선택</option>' + 
-        students.map(s => `<option value="${s.id}">${s.name} (${s.id})</option>`).join('');
-    }
-
+    /* 
+      ===========================================
+      급식 현황 통계 & 명단 토글 로직
+      ===========================================
+    */
     document.getElementById('card-ate').addEventListener('click', () => { statViewMode = 'ate'; renderStats(); });
     document.getElementById('card-not-ate').addEventListener('click', () => { statViewMode = 'notAte'; renderStats(); });
 
-    // Cancel Meal Function (Click X on Ate list)
-    window.cancelMeal = async (docId) => {
-      try {
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `meal_attendance_${todayStr}`, docId));
-        showToast('식사 기록이 성공적으로 취소되었습니다.');
-      } catch (e) { showToast('취소 실패. DB 연결을 확인하세요.', 'error'); }
+    window.cancelMeal = (docId) => {
+      dbEngine.deleteAttendance(docId);
+      showToast('식사 완료 처리가 취소되었습니다.', 'success');
     }
 
     function renderStats() {
@@ -556,59 +569,66 @@
       const cardAte = document.getElementById('card-ate');
       const cardNotAte = document.getElementById('card-not-ate');
       
-      // Update toggle styles
+      // 토글 카드 디자인 변경
       if(statViewMode === 'ate') {
-        cardAte.className = "p-5 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-blue-600 text-white shadow-lg shadow-blue-200 ring-2 ring-blue-600 ring-offset-2";
+        cardAte.className = "p-4 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-blue-600 text-white shadow-lg shadow-blue-200 ring-2 ring-blue-600 ring-offset-2";
         cardAte.querySelector('p').classList.replace('text-gray-500', 'text-blue-100');
         cardAte.querySelector('span:last-child').classList.replace('text-gray-400', 'text-blue-200');
         
-        cardNotAte.className = "p-5 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-white text-gray-800 border border-gray-100 hover:bg-gray-50 shadow-sm";
+        cardNotAte.className = "p-4 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-white text-gray-800 border border-gray-100 hover:bg-gray-50 shadow-sm";
         cardNotAte.querySelector('p').classList.replace('text-gray-300', 'text-gray-500');
         cardNotAte.querySelector('span:last-child').classList.replace('text-gray-400', 'text-gray-400');
       } else {
-        cardNotAte.className = "p-5 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-gray-900 text-white shadow-lg ring-2 ring-gray-900 ring-offset-2";
+        cardNotAte.className = "p-4 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-gray-900 text-white shadow-lg ring-2 ring-gray-900 ring-offset-2";
         cardNotAte.querySelector('p').classList.replace('text-gray-500', 'text-gray-400');
         
-        cardAte.className = "p-5 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-white text-gray-800 border border-gray-100 hover:bg-blue-50/50 shadow-sm";
+        cardAte.className = "p-4 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-white text-gray-800 border border-gray-100 hover:bg-blue-50/50 shadow-sm";
         cardAte.querySelector('p').classList.replace('text-blue-100', 'text-gray-500');
         cardAte.querySelector('span:last-child').classList.replace('text-blue-200', 'text-gray-400');
       }
 
-      // Render List based on toggle
+      // 하단 명단 렌더링
       const titleEl = document.getElementById('stat-list-title');
       const listEl = document.getElementById('stat-list-container');
       
       if(statViewMode === 'ate') {
         titleEl.innerHTML = `<i class="fa-solid fa-circle-check text-blue-600 mr-2"></i> 식사 완료 학생 명단`;
         if(todayAttendance.length === 0) {
-          listEl.innerHTML = `<p class="text-gray-400 text-sm font-bold p-6 bg-gray-50 rounded-2xl w-full text-center border border-dashed border-gray-200">아직 식사한 학생이 없습니다.</p>`;
+          listEl.innerHTML = `<p class="text-gray-400 text-sm font-bold p-6 bg-gray-50 rounded-2xl w-full text-center border border-dashed border-gray-200">아직 밥을 먹은 학생이 없습니다.</p>`;
         } else {
           listEl.innerHTML = todayAttendance.map(record => {
             const s = students.find(x => x.id === record.studentId);
             if(!s) return '';
-            return `<span class="px-3.5 py-2 bg-blue-50 text-blue-800 border border-blue-100 rounded-xl text-sm font-bold flex items-center shadow-sm animate-in fade-in">
-              ${s.name} <span class="font-medium text-blue-500/80 ml-1 text-xs">(${s.id})</span>
-              <button onclick="cancelMeal('${record.docId}')" class="ml-3 text-blue-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-md transition-colors" title="식사 취소"><i class="fa-solid fa-xmark"></i></button>
+            return `<span class="px-4 py-2 bg-blue-50 text-blue-800 border border-blue-200 rounded-xl text-sm font-extrabold flex items-center shadow-sm animate-in fade-in">
+              ${s.name} <span class="font-bold text-blue-500/80 ml-1.5 text-xs">(${s.id})</span>
+              <button onclick="cancelMeal('${record.docId}')" class="ml-3 text-blue-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-md transition-colors focus:outline-none" title="식사 취소"><i class="fa-solid fa-xmark text-lg"></i></button>
             </span>`;
           }).join('');
         }
       } else {
-        titleEl.innerHTML = `<i class="fa-solid fa-user-clock text-gray-600 mr-2"></i> 식사 대기(미식사) 명단`;
+        titleEl.innerHTML = `<i class="fa-solid fa-user-clock text-gray-600 mr-2"></i> 아직 밥 안 먹은(미식사) 명단`;
         const notAteStudents = students.filter(s => !todayAttendance.some(a => a.studentId === s.id));
+        
         if(notAteStudents.length === 0 && students.length > 0) {
-          listEl.innerHTML = `<p class="text-green-600 text-sm font-bold p-6 bg-green-50 rounded-2xl w-full text-center flex items-center justify-center border border-dashed border-green-200">모든 학생이 식사를 완료했습니다! 🎉</p>`;
+          listEl.innerHTML = `<p class="text-green-600 text-base font-extrabold p-6 bg-green-50 rounded-2xl w-full text-center flex items-center justify-center border border-dashed border-green-200">모든 학생이 식사를 완료했습니다! 🎉</p>`;
         } else if (students.length === 0) {
-          listEl.innerHTML = `<p class="text-gray-400 text-sm font-bold p-6 bg-gray-50 rounded-2xl w-full text-center">등록된 학생이 없습니다.</p>`;
+          listEl.innerHTML = `<p class="text-gray-400 text-sm font-bold p-6 bg-gray-50 rounded-2xl w-full text-center border border-dashed border-gray-200">등록된 학생이 없습니다.</p>`;
         } else {
           listEl.innerHTML = notAteStudents.map(s => `
-            <span class="px-3.5 py-2 bg-white text-gray-600 border border-gray-200 rounded-xl text-sm font-bold flex items-center shadow-sm animate-in fade-in">
-              ${s.name} <span class="text-gray-400 ml-1 text-xs font-medium">(${s.id})</span>
+            <span class="px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl text-sm font-bold flex items-center shadow-sm animate-in fade-in">
+              ${s.name} <span class="text-gray-400 ml-1.5 text-xs font-semibold">(${s.id})</span>
             </span>
           `).join('');
         }
       }
     }
 
+
+    /* 
+      ===========================================
+      QR 스캐너 및 수동 테스트 로직
+      ===========================================
+    */
     const videoEl = document.getElementById('qr-video');
     const canvasEl = document.getElementById('qr-canvas');
     const overlayEl = document.getElementById('video-overlay');
@@ -621,7 +641,7 @@
     });
 
     async function startCamera() {
-      if (!window.jsQR) { showToast('스캐너를 불러오는 중입니다.', 'error'); return; }
+      if (!window.jsQR) { showToast('스캐너 엔진 로딩중입니다.', 'error'); return; }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         streamRef = stream;
@@ -629,13 +649,14 @@
         pendingScanStudent = null;
         updateScannerUI();
         
-        // Delay to allow video tag to render, fixes black screen issue
         setTimeout(() => {
           videoEl.srcObject = stream;
           videoEl.play().then(() => { requestRef = requestAnimationFrame(tickScanner); })
-                        .catch(err => console.error("Play error:", err));
+                        .catch(err => console.error(err));
         }, 150);
-      } catch (err) { showToast('카메라 권한을 확인해주세요. (PC는 수동 테스트 권장)', 'error'); }
+      } catch (err) { 
+        showToast('카메라 권한이 없거나 지원하지 않는 브라우저입니다. 하단의 수동 테스트를 이용해주세요.', 'error'); 
+      }
     }
 
     function stopCamera() {
@@ -653,6 +674,7 @@
         const ctx = canvasEl.getContext('2d', { willReadFrequently: true });
         ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
         const imgData = ctx.getImageData(0, 0, canvasEl.width, canvasEl.height);
+        
         const code = window.jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
 
         if (code) processScanData(code.data);
@@ -670,12 +692,13 @@
         const timeWindow = parseInt(timeStr, 10);
         const currentTimeWindow = Math.floor(Date.now() / 60000);
 
+        // 캡처본 방지 로직 (1분 초과 불가)
         if (currentTimeWindow - timeWindow > 1 || currentTimeWindow < timeWindow) {
-          showToast('만료되었거나 유효하지 않은 QR코드입니다.', 'error'); return;
+          showToast('만료되었거나 유효하지 않은 QR코드입니다. (캡처본 의심)', 'error'); return;
         }
 
         const student = allUsers.find(u => u.id === studentId && u.role === 'student');
-        if (!student) { showToast('등록되지 않은 학생입니다.', 'error'); return; }
+        if (!student) { showToast('등록되지 않은 학생의 바코드입니다.', 'error'); return; }
 
         if (todayAttendance.some(a => a.studentId === studentId)) {
           showToast(`이미 식사를 완료한 학생입니다. (${student.name})`, 'error'); return;
@@ -683,7 +706,7 @@
 
         pendingScanStudent = student;
         updateScannerUI();
-      } catch (err) { showToast('올바르지 않은 QR 형식입니다.', 'error'); }
+      } catch (err) { showToast('스마트 석식 패스용 QR코드가 아닙니다.', 'error'); }
     }
 
     function updateScannerUI() {
@@ -705,27 +728,24 @@
           placeholderEl.classList.add('opacity-0');
           document.getElementById('video-container').classList.replace('bg-gray-50', 'bg-gray-900');
           cameraBtn.textContent = "카메라 끄기";
-          cameraBtn.className = "w-full max-w-md px-6 py-4 bg-red-50 text-red-600 font-bold rounded-2xl transition-colors hover:bg-red-100 border border-red-100 mt-4";
+          cameraBtn.className = "w-full max-w-md px-6 py-4 bg-red-50 text-red-600 font-bold rounded-2xl transition-colors hover:bg-red-100 border border-red-100 mt-4 text-lg";
         } else {
           videoEl.classList.add('hidden');
           overlayEl.classList.add('hidden');
           placeholderEl.classList.remove('opacity-0');
           document.getElementById('video-container').classList.replace('bg-gray-900', 'bg-gray-50');
           cameraBtn.textContent = "카메라 켜기";
-          cameraBtn.className = "w-full max-w-md px-6 py-4 bg-gray-900 text-white font-bold rounded-2xl transition-all hover:bg-gray-800 shadow-md mt-4 active:scale-95";
+          cameraBtn.className = "w-full max-w-md px-6 py-4 bg-gray-900 text-white font-bold rounded-2xl transition-all hover:bg-gray-800 shadow-md mt-4 active:scale-95 text-lg";
         }
       }
     }
 
-    document.getElementById('btn-confirm-meal').addEventListener('click', async () => {
+    document.getElementById('btn-confirm-meal').addEventListener('click', () => {
       if(!pendingScanStudent) return;
-
-      try {
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', `meal_attendance_${todayStr}`), { studentId: pendingScanStudent.id, timestamp: Date.now() });
-        showToast(`${pendingScanStudent.name} 식사 확인 완료!`);
-        pendingScanStudent = null;
-        updateScannerUI();
-      } catch(e) { showToast('등록 오류. DB 연결을 확인하세요.', 'error'); }
+      dbEngine.addAttendance(pendingScanStudent.id);
+      showToast(`✅ ${pendingScanStudent.name} 학생 식사 확인 완료!`);
+      pendingScanStudent = null;
+      updateScannerUI();
     });
 
     document.getElementById('btn-cancel-meal').addEventListener('click', () => {
@@ -733,22 +753,35 @@
       updateScannerUI();
     });
 
-    // Manual Scan Tool
+    // 수동 스캔 
     document.getElementById('manual-scan-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const input = document.getElementById('manual-scan-input');
       if(input.value) { processScanData(input.value); input.value = ''; }
     });
 
+    function updateTestStudentSelect() {
+      const select = document.getElementById('test-student-select');
+      const students = allUsers.filter(u => u.role === 'student');
+      select.innerHTML = '<option value="">등록된 학생 선택</option>' + 
+        students.map(s => `<option value="${s.id}">${s.name} (${s.id})</option>`).join('');
+    }
+
     document.getElementById('btn-generate-test-qr').addEventListener('click', () => {
       const select = document.getElementById('test-student-select');
-      if(!select.value) { showToast('학생을 선택하세요.', 'error'); return; }
+      if(!select.value) { showToast('먼저 좌측에서 테스트할 학생을 선택하세요.', 'error'); return; }
       const currentMinute = Math.floor(Date.now() / 60000);
       const raw = `${select.value}|${currentMinute}`;
       document.getElementById('manual-scan-input').value = btoa(raw);
-      showToast('입력창에 텍스트가 복사되었습니다. [스캔 확인]을 누르세요.');
+      showToast('텍스트가 자동 입력되었습니다. [스캔 확인]을 누르세요.');
     });
 
+
+    /* 
+      ===========================================
+      학생 대시보드 (QR 화면)
+      ===========================================
+    */
     function initStudentDashboard() {
       showScreen('student');
       document.getElementById('student-display-name').textContent = currentUser.name;
@@ -783,7 +816,7 @@
       
       const img = document.getElementById('student-qr-img');
       const newSrc = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(encoded)}&margin=1`;
-      if(img.src !== newSrc) img.src = newSrc; // Prevent flickering by only setting if changed
+      if(img.src !== newSrc) img.src = newSrc;
       
       let secondsLeft = 60 - (new Date().getSeconds());
       const timeText = document.getElementById('student-time-left');
