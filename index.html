@@ -38,6 +38,25 @@
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased min-h-screen">
 
+  <!-- Safety Fallback Script: 어떠한 이유로든 스크립트가 멈추면 4.5초 후 강제로 로그인 화면 표시 -->
+  <script>
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        var loading = document.getElementById('loading-screen');
+        if (loading && !loading.classList.contains('hidden')) {
+          loading.classList.add('hidden');
+          document.getElementById('login-screen').classList.remove('hidden');
+          window.__FORCE_LOCAL = true;
+          var toast = document.getElementById('toast');
+          toast.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-2"></i>오프라인 강제 진입 (네트워크 차단)';
+          toast.className = 'fixed left-1/2 transform -translate-x-1/2 px-6 py-3.5 rounded-2xl shadow-xl z-[100] text-white font-bold toast-enter flex items-center bg-red-500';
+          toast.classList.remove('hidden');
+          setTimeout(function(){ toast.classList.add('hidden'); }, 4000);
+        }
+      }, 4500); 
+    });
+  </script>
+
   <!-- Toast Notification -->
   <div id="toast" class="fixed left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-lg z-50 text-white font-medium hidden transition-all duration-300" style="top: 20px;"></div>
 
@@ -306,10 +325,6 @@
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
     let app = null, auth = null, db = null;
     let currentUser = null; 
     let allUsers = [];
@@ -317,6 +332,9 @@
     let statViewMode = 'ate'; // 'ate' or 'notAte'
     let studentInterval = null;
     let isLocalMode = false; // CodeSandbox 등 외부 접속 시 작동할 예비 모드
+
+    // Firebase functions (동적 Import 용 변수 할당)
+    let collection, onSnapshot, addDoc, deleteDoc, doc;
 
     // Camera state
     let isCameraActive = false;
@@ -350,47 +368,53 @@
     }
 
     async function initializeSystem() {
-      const initTask = async () => {
-        if (typeof __firebase_config === 'undefined') {
-          throw new Error("외부 환경 접속 감지. 데이터베이스 연결을 건너뜁니다.");
-        }
-        
-        const firebaseConfig = JSON.parse(__firebase_config);
-        if (Object.keys(firebaseConfig).length === 0) throw new Error("Firebase config is empty");
-        
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-        
-        // Listeners for DB
-        setupFirestoreListeners();
-      };
-
       try {
-        // 브라우저 보안 정책으로 인해 연결이 무한 대기하는 현상을 막고자 3초 타임아웃을 적용합니다.
         await Promise.race([
-          initTask(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("데이터베이스 연결 지연")), 3000))
+          (async () => {
+            if (typeof __firebase_config === 'undefined') {
+              throw new Error("외부 환경 접속 감지.");
+            }
+            const firebaseConfig = JSON.parse(__firebase_config);
+            if (Object.keys(firebaseConfig).length === 0) throw new Error("Firebase config is empty");
+
+            // 정적 import가 막혀 앱이 정지하는 현상을 방지하기 위해 '동적 import' 사용
+            const fbApp = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
+            const fbAuth = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+            const fbStore = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+
+            app = fbApp.initializeApp(firebaseConfig);
+            auth = fbAuth.getAuth(app);
+            db = fbStore.getFirestore(app);
+
+            collection = fbStore.collection;
+            onSnapshot = fbStore.onSnapshot;
+            addDoc = fbStore.addDoc;
+            deleteDoc = fbStore.deleteDoc;
+            doc = fbStore.doc;
+
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+              await fbAuth.signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+              await fbAuth.signInAnonymously(auth);
+            }
+
+            setupFirestoreListeners();
+          })(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("데이터베이스 연결 지연")), 3500))
         ]);
       } catch (error) {
         console.warn("System Init Info:", error.message);
-        isLocalMode = true; 
-        
+        isLocalMode = true;
+        window.__FORCE_LOCAL = true;
+
         // 로컬 모드에서 테스트가 쉽도록 기본 학생을 1명 자동으로 추가해 둡니다.
         allUsers = [
           { docId: 'local_test_1', id: '30101', name: '김테스트', password: '123', role: 'student' }
         ];
-        
+
         showToast("오프라인 모드로 실행됩니다. (테스트 학생 30101번 자동 추가)", "error");
       } finally {
-        // 성공하든 실패하든 무조건 0.3초 뒤에 로딩을 끝내고 로그인 화면을 보여줍니다.
-        setTimeout(() => showScreen('login'), 300);
+        showScreen('login');
       }
     }
 
@@ -421,6 +445,13 @@
 
     document.getElementById('login-form').addEventListener('submit', (e) => {
       e.preventDefault();
+
+      // 최후의 안전장치 발동 시 로컬 모드 데이터 강제 삽입
+      if (window.__FORCE_LOCAL && allUsers.length === 0) {
+         allUsers = [ { docId: 'local_test_1', id: '30101', name: '김테스트', password: '123', role: 'student' } ];
+         isLocalMode = true;
+      }
+
       const id = document.getElementById('login-id').value.trim();
       const pw = document.getElementById('login-pw').value.trim();
 
