@@ -345,9 +345,14 @@
         db = getFirestore(app);
         auth = getAuth(app);
 
-        // Strict Auth Rule before Queries
+        // 엄격한 Auth 규칙 및 토큰 만료 대비 예비(Fallback) 로그인 추가
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
+          try {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } catch (tokenErr) {
+            console.warn("인증 토큰 오류, 예비 권한으로 접속합니다.", tokenErr);
+            await signInAnonymously(auth);
+          }
         } else {
           await signInAnonymously(auth);
         }
@@ -356,7 +361,7 @@
         enableLoginUI();
       } catch(e) {
         console.error("DB Error", e);
-        showToast("클라우드 서버 연결 오류", "error");
+        showToast("클라우드 서버 연결 오류. 화면을 새로고침 해주세요.", "error");
         enableLoginUI();
       }
     }
@@ -403,13 +408,16 @@
        Firestore Write Operations (Attached to Window for HTML)
        ======================================================== */
     window.dbAddUser = async function(userObj) {
-      if (!auth?.currentUser) return false;
-      if (window.allUsers.some(u => u.id === userObj.id)) return false;
+      if (!auth?.currentUser) return { success: false, msg: 'DB 서버와 연결이 끊어졌습니다. 화면을 새로고침 해주세요.' };
+      if (window.allUsers.some(u => u.id === userObj.id)) return { success: false, msg: '이미 존재하는 학번입니다.' };
       try {
         const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'meal_users');
         await addDoc(usersRef, { role: 'student', ...userObj });
-        return true;
-      } catch(e) { return false; }
+        return { success: true };
+      } catch(e) { 
+        console.error("AddUser Error:", e);
+        return { success: false, msg: '서버 저장 권한 오류: ' + e.message }; 
+      }
     }
 
     window.dbDeleteUser = async function(docId) {
@@ -509,17 +517,26 @@
     // Add Student Submit
     document.getElementById('add-student-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 등록 중...';
+
       const id = document.getElementById('new-std-id').value.trim();
       const name = document.getElementById('new-std-name').value.trim();
       const pw = document.getElementById('new-std-pw').value.trim();
 
-      const success = await window.dbAddUser({ id, name, password: pw });
-      if (success) {
+      const result = await window.dbAddUser({ id, name, password: pw });
+      if (result && result.success) {
         showToast('학생 등록 완료!');
         e.target.reset();
       } else {
-        showToast('이미 존재하는 학번이거나 권한이 없습니다.', 'error');
+        const errorMsg = result ? result.msg : '알 수 없는 오류가 발생했습니다.';
+        showToast(errorMsg, 'error');
       }
+      
+      btn.disabled = false;
+      btn.innerHTML = originalText;
     });
 
     function renderStudentsTable() {
