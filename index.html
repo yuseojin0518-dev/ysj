@@ -4,10 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>스마트 석식 패스</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- QR 스캐너 엔진 로드 -->
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- QR 스캐너 엔진 (jsQR) -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   
   <style>
@@ -32,9 +34,9 @@
 <body class="bg-gray-50 text-gray-800 antialiased min-h-screen">
 
   <!-- Toast Notification -->
-  <div id="toast" class="fixed left-1/2 transform -translate-x-1/2 px-6 py-3.5 rounded-2xl shadow-lg z-50 text-white font-bold hidden transition-all duration-300" style="top: 20px;"></div>
+  <div id="toast" class="fixed left-1/2 transform -translate-x-1/2 px-6 py-3.5 rounded-2xl shadow-lg z-50 text-white font-bold hidden transition-all duration-300 flex items-center" style="top: 20px;"></div>
 
-  <!-- Login Screen -->
+  <!-- -->
   <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
     <div class="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 w-full max-w-md border border-gray-100">
       <div class="text-center mb-8">
@@ -42,7 +44,7 @@
           <i class="fa-solid fa-qrcode text-white text-4xl"></i>
         </div>
         <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">스마트 석식 패스</h1>
-        <p class="text-gray-500 mt-2 text-sm font-medium">안전하고 빠른 급식실 QR 인증</p>
+        <p class="text-gray-500 mt-2 text-sm font-medium">실시간 클라우드 동기화 시스템</p>
       </div>
 
       <form id="login-form" class="space-y-5">
@@ -54,14 +56,15 @@
           <label class="block text-sm font-bold text-gray-700 mb-2 ml-1">비밀번호</label>
           <input type="password" id="login-pw" class="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium" placeholder="비밀번호를 입력하세요" required>
         </div>
-        <button type="submit" class="w-full bg-gray-900 hover:bg-black active:scale-[0.98] text-white font-bold py-4 px-4 rounded-2xl shadow-md transition-all mt-4 text-lg">
-          로그인
+        
+        <button type="submit" id="login-submit-btn" disabled class="w-full bg-gray-400 text-white font-bold py-4 px-4 rounded-2xl shadow-md transition-all mt-4 text-lg flex justify-center items-center gap-2">
+          <i class="fa-solid fa-circle-notch fa-spin"></i> 서버 연결 중...
         </button>
       </form>
     </div>
   </div>
 
-  <!-- Admin Dashboard -->
+  <!-- -->
   <div id="admin-dashboard" class="max-w-5xl mx-auto p-4 sm:p-6 md:p-8 hidden animate-in">
     <header class="flex justify-between items-center mb-6 bg-white p-4 sm:px-6 rounded-3xl shadow-sm border border-gray-100">
       <div class="flex items-center gap-3">
@@ -99,7 +102,6 @@
           <div class="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col items-center">
             <h2 class="text-xl font-extrabold text-gray-800 mb-6 w-full text-left">실시간 QR 스캐너</h2>
             
-            <!-- Pending Student Modal -->
             <div id="scanner-pending-ui" class="bg-blue-50 border-2 border-blue-200 rounded-[2rem] p-8 w-full text-center hidden animate-in zoom-in-95">
               <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm text-blue-600 text-3xl">
                  <i class="fa-solid fa-user-check"></i>
@@ -116,7 +118,6 @@
               </div>
             </div>
 
-            <!-- Camera UI -->
             <div id="scanner-camera-ui" class="w-full flex flex-col items-center">
               <div id="video-container" class="relative w-full max-w-md aspect-square bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2rem] flex flex-col items-center justify-center text-gray-400 mb-6 overflow-hidden">
                 <div id="video-placeholder" class="flex flex-col items-center transition-opacity duration-300">
@@ -182,14 +183,14 @@
                   </tr>
                 </thead>
                 <tbody id="students-tbody">
-                  <!-- Populated dynamically -->
+                  <!-- JS Rendered -->
                 </tbody>
               </table>
             </div>
           </div>
         </div>
 
-        <!-- Tab: Stats (급식 현황) -->
+        <!-- Tab: Stats -->
         <div id="tab-stats" class="admin-tab-content hidden space-y-6 animate-in">
           <div class="grid grid-cols-3 gap-3 sm:gap-4">
             <div class="bg-white p-4 sm:p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
@@ -197,7 +198,6 @@
               <p class="text-2xl sm:text-4xl font-extrabold text-gray-900"><span id="stat-total">0</span><span class="text-base font-medium text-gray-400 ml-1">명</span></p>
             </div>
             
-            <!-- 식사 완료 / 미식사 토글 카드 -->
             <div id="card-ate" class="p-4 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-blue-600 text-white shadow-lg shadow-blue-200 ring-2 ring-blue-600 ring-offset-2">
               <p class="text-blue-100 text-xs sm:text-sm font-bold mb-1">식사 완료 (클릭)</p>
               <p class="text-2xl sm:text-4xl font-extrabold"><span id="stat-ate">0</span><span class="text-base font-medium text-blue-200 ml-1">명</span></p>
@@ -221,10 +221,10 @@
 
           <div class="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-gray-100 min-h-[250px]">
             <h2 id="stat-list-title" class="text-xl font-extrabold text-gray-900 mb-6 flex items-center">
-              <!-- JS에서 제목 주입 -->
+              <!-- JS Injected -->
             </h2>
             <div id="stat-list-container" class="flex flex-wrap gap-2.5">
-              <!-- 명단 렌더링 -->
+              <!-- JS Injected -->
             </div>
           </div>
         </div>
@@ -232,7 +232,7 @@
     </div>
   </div>
 
-  <!-- Student Dashboard -->
+  <!-- -->
   <div id="student-dashboard" class="min-h-screen flex flex-col items-center p-4 bg-gray-100 hidden animate-in">
     <header class="w-full max-w-sm flex justify-between items-center mb-8 mt-4">
       <h1 class="font-extrabold text-2xl text-gray-900 tracking-tight">스마트 패스</h1>
@@ -250,7 +250,6 @@
       <h2 id="student-display-name" class="text-3xl font-extrabold text-gray-900 mb-1">이름</h2>
       <p id="student-display-id" class="text-gray-500 font-bold mb-8 text-sm">학번</p>
 
-      <!-- 식사 완료 UI -->
       <div id="student-success-ui" class="bg-green-50 border-2 border-green-200 rounded-3xl p-8 w-full flex flex-col items-center animate-in hidden">
         <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mb-5 shadow-lg shadow-green-200 text-white text-4xl">
            <i class="fa-solid fa-check"></i>
@@ -259,7 +258,6 @@
         <p class="text-sm text-green-600 font-bold">맛있게 드세요 😊</p>
       </div>
 
-      <!-- QR 생성 UI -->
       <div id="student-qr-ui" class="w-full flex flex-col items-center hidden">
         <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-200 mb-6 relative ring-4 ring-blue-50">
           <img id="student-qr-img" src="" alt="QR 코드" class="w-48 h-48 object-contain rounded-xl" />
@@ -285,158 +283,178 @@
     </div>
   </div>
 
-  <script>
-    /* 
-      ==========================================================
-      [완벽한 내장형 오프라인 데이터베이스 엔진]
-      외부 서버 의존 없이 브라우저의 localStorage를 활용하여 
-      로그아웃/새로고침을 해도 데이터가 100% 영구 보존됩니다.
-      ==========================================================
-    */
+  <!-- -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    /* ========================================================
+       Global Variables & UI State
+       ======================================================== */
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'smart-meal-pass-app';
+    const configStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+    
+    let db, auth;
+    let currentUser = null;
+    
+    window.allUsers = [];
+    window.allAttendance = [];
+    window.todayAttendance = [];
+    window.statViewMode = 'ate'; // 'ate' or 'notAte'
+    
     const todayStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '').replace(/\s/g, '');
 
-    const dbEngine = {
-      data: JSON.parse(localStorage.getItem('SmartMealPass_DB_v2')) || { users: [], attendance: [] },
-      listeners: {},
-      
-      save: function() {
-        localStorage.setItem('SmartMealPass_DB_v2', JSON.stringify(this.data));
-      },
-      
-      notify: function(collection) {
-        if (this.listeners[collection]) {
-          this.listeners[collection].forEach(callback => callback(this.data[collection]));
-        }
-      },
-      
-      subscribe: function(collection, callback) {
-        if (!this.listeners[collection]) this.listeners[collection] = [];
-        this.listeners[collection].push(callback);
-        // 즉시 최초 데이터 전달
-        callback(this.data[collection]);
-      },
-      
-      addUser: function(userObj) {
-        // 중복 학번 체크
-        if(this.data.users.some(u => u.id === userObj.id)) return false; 
-        const newUser = { docId: 'usr_' + Date.now(), role: 'student', ...userObj };
-        this.data.users.push(newUser);
-        this.save();
-        this.notify('users');
-        return true;
-      },
-      
-      deleteUser: function(docId) {
-        this.data.users = this.data.users.filter(u => u.docId !== docId);
-        // 해당 학생의 출석 기록도 삭제
-        const studentId = this.data.users.find(u => u.docId === docId)?.id;
-        if (studentId) {
-           this.data.attendance = this.data.attendance.filter(a => a.studentId !== studentId);
-        }
-        this.save();
-        this.notify('users');
-        this.notify('attendance');
-      },
-      
-      addAttendance: function(studentId) {
-        if(this.data.attendance.some(a => a.studentId === studentId && a.date === todayStr)) return false;
-        this.data.attendance.push({ docId: 'att_' + Date.now(), studentId, date: todayStr, timestamp: Date.now() });
-        this.save();
-        this.notify('attendance');
-        return true;
-      },
-      
-      deleteAttendance: function(docId) {
-        this.data.attendance = this.data.attendance.filter(a => a.docId !== docId);
-        this.save();
-        this.notify('attendance');
-      },
-
-      // 오늘 날짜의 출석만 가져오기
-      getTodayAttendance: function() {
-        return this.data.attendance.filter(a => a.date === todayStr);
-      }
-    };
-
-    // 상태 변수
-    let currentUser = null; 
-    let allUsers = [];
-    let todayAttendance = []; 
-    let statViewMode = 'ate'; // 'ate' or 'notAte'
-    let studentInterval = null;
-
-    // 카메라 관련 상태
-    let isCameraActive = false;
-    let streamRef = null;
-    let requestRef = null;
-    let pendingScanStudent = null;
-
-    // 화면 컨트롤러
+    // UI Elements
+    const toastEl = document.getElementById('toast');
+    const loginBtn = document.getElementById('login-submit-btn');
     const screens = {
       login: document.getElementById('login-screen'),
       admin: document.getElementById('admin-dashboard'),
       student: document.getElementById('student-dashboard')
     };
 
+    /* ========================================================
+       Utility Functions
+       ======================================================== */
+    let toastTimeout;
+    window.showToast = function(msg, type = 'success') {
+      toastEl.innerHTML = type === 'error' ? `<i class="fa-solid fa-triangle-exclamation mr-2 text-xl"></i>${msg}` : `<i class="fa-solid fa-circle-check mr-2 text-xl"></i>${msg}`;
+      toastEl.className = `fixed left-1/2 transform -translate-x-1/2 px-6 py-4 rounded-2xl shadow-xl z-[100] text-white font-bold toast-enter flex items-center ${type === 'error' ? 'bg-red-500' : 'bg-gray-900'}`;
+      toastEl.classList.remove('hidden');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => { toastEl.classList.add('hidden'); }, 3000);
+    }
+
     function showScreen(screenName) {
       Object.values(screens).forEach(el => el.classList.add('hidden'));
       screens[screenName].classList.remove('hidden');
     }
 
-    // 토스트 알림
-    let toastTimeout;
-    function showToast(msg, type = 'success') {
-      const toast = document.getElementById('toast');
-      toast.innerHTML = type === 'error' ? `<i class="fa-solid fa-triangle-exclamation mr-2"></i>${msg}` : `<i class="fa-solid fa-circle-check mr-2"></i>${msg}`;
-      toast.className = `fixed left-1/2 transform -translate-x-1/2 px-6 py-4 rounded-2xl shadow-xl z-[100] text-white font-bold toast-enter flex items-center ${type === 'error' ? 'bg-red-500' : 'bg-gray-900'}`;
-      toast.classList.remove('hidden');
-      clearTimeout(toastTimeout);
-      toastTimeout = setTimeout(() => { toast.classList.add('hidden'); }, 3000);
+    /* ========================================================
+       Firebase Cloud Initialization (Multiplayer / Persistence)
+       ======================================================== */
+    async function initCloudDatabase() {
+      if (!configStr) {
+        showToast("제미나이 외부 환경입니다. 동기화 기능이 제한될 수 있습니다.", "error");
+        enableLoginUI();
+        return;
+      }
+      try {
+        const app = initializeApp(JSON.parse(configStr));
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        // Strict Auth Rule before Queries
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        setupRealtimeSync();
+        enableLoginUI();
+      } catch(e) {
+        console.error("DB Error", e);
+        showToast("클라우드 서버 연결 오류", "error");
+        enableLoginUI();
+      }
     }
 
-    /* 
-      ===========================================
-      데이터베이스 구독 설정 (실시간 반영)
-      ===========================================
-    */
-    dbEngine.subscribe('users', (users) => {
-      allUsers = users;
-      if (currentUser?.role === 'admin') {
-        renderStudentsTable();
-        renderStats();
-        updateTestStudentSelect();
-      }
-    });
+    function enableLoginUI() {
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = "로그인";
+      loginBtn.className = "w-full bg-gray-900 hover:bg-black active:scale-[0.98] text-white font-bold py-4 px-4 rounded-2xl shadow-md transition-all mt-4 text-lg";
+    }
 
-    dbEngine.subscribe('attendance', (attendanceList) => {
-      todayAttendance = dbEngine.getTodayAttendance();
-      if (currentUser?.role === 'admin') {
-        renderStats();
-      } else if (currentUser?.role === 'student') {
-        updateStudentUI();
-      }
-    });
+    /* ========================================================
+       Realtime Data Sync (onSnapshot)
+       ======================================================== */
+    function setupRealtimeSync() {
+      if (!auth.currentUser) return;
 
+      // 1. Listen to all students
+      const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'meal_users');
+      onSnapshot(usersRef, (snapshot) => {
+        window.allUsers = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        if (currentUser?.role === 'admin') {
+          renderStudentsTable();
+          renderStats();
+          updateTestStudentSelect();
+        }
+      }, (error) => console.error(error));
 
-    /* 
-      ===========================================
-      로그인 및 로그아웃 처리
-      ===========================================
-    */
+      // 2. Listen to all attendance
+      const attRef = collection(db, 'artifacts', appId, 'public', 'data', 'meal_attendance');
+      onSnapshot(attRef, (snapshot) => {
+        window.allAttendance = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        // Rule 2: Filter today's attendance in memory
+        window.todayAttendance = window.allAttendance.filter(a => a.date === todayStr);
+        
+        if (currentUser?.role === 'admin') {
+          renderStats();
+        } else if (currentUser?.role === 'student') {
+          updateStudentUI();
+        }
+      }, (error) => console.error(error));
+    }
+
+    /* ========================================================
+       Firestore Write Operations (Attached to Window for HTML)
+       ======================================================== */
+    window.dbAddUser = async function(userObj) {
+      if (!auth?.currentUser) return false;
+      if (window.allUsers.some(u => u.id === userObj.id)) return false;
+      try {
+        const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'meal_users');
+        await addDoc(usersRef, { role: 'student', ...userObj });
+        return true;
+      } catch(e) { return false; }
+    }
+
+    window.dbDeleteUser = async function(docId) {
+      if (!auth?.currentUser) return;
+      try {
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'meal_users', docId));
+        showToast('학생 정보가 삭제되었습니다.');
+      } catch(e) { showToast('삭제 실패', 'error'); }
+    }
+
+    window.dbAddAttendance = async function(studentId) {
+      if (!auth?.currentUser) return;
+      if (window.todayAttendance.some(a => a.studentId === studentId)) return false;
+      try {
+        const attRef = collection(db, 'artifacts', appId, 'public', 'data', 'meal_attendance');
+        await addDoc(attRef, { studentId, date: todayStr, timestamp: Date.now() });
+        return true;
+      } catch(e) { return false; }
+    }
+
+    window.dbDeleteAttendance = async function(docId) {
+      if (!auth?.currentUser) return;
+      try {
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'meal_attendance', docId));
+        showToast('식사 확인이 취소되었습니다.', 'success');
+      } catch(e) { showToast('취소 실패', 'error'); }
+    }
+
+    /* ========================================================
+       Login & Routing Logic
+       ======================================================== */
     document.getElementById('login-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const id = document.getElementById('login-id').value.trim();
       const pw = document.getElementById('login-pw').value.trim();
 
-      // 관리자 하드코딩
+      // Admin Hardcode
       if (id === 'ysj0518' && pw === 'ysj0518!') {
         currentUser = { role: 'admin', id: 'ysj0518', name: '관리자 선생님' };
         initAdminDashboard();
         return;
       }
       
-      // 학생 로그인 확인
-      const student = allUsers.find(u => u.id === id && u.password === pw && u.role === 'student');
+      // Student Check
+      const student = window.allUsers.find(u => u.id === id && u.password === pw && u.role === 'student');
       if (student) {
         currentUser = student;
         initStudentDashboard();
@@ -446,40 +464,32 @@
       showToast('아이디 또는 비밀번호가 일치하지 않습니다.', 'error');
     });
 
-    const handleLogout = () => {
+    window.handleLogout = function() {
       currentUser = null;
-      stopCamera();
-      if(studentInterval) clearInterval(studentInterval);
+      window.stopCamera();
+      if (window.studentInterval) clearInterval(window.studentInterval);
       document.getElementById('login-id').value = '';
       document.getElementById('login-pw').value = '';
       showScreen('login');
-      showToast('성공적으로 로그아웃 되었습니다.');
-    };
+      showToast('로그아웃 되었습니다.');
+    }
     
-    document.getElementById('btn-admin-logout').addEventListener('click', handleLogout);
-    document.getElementById('btn-student-logout').addEventListener('click', handleLogout);
+    document.getElementById('btn-admin-logout').addEventListener('click', window.handleLogout);
+    document.getElementById('btn-student-logout').addEventListener('click', window.handleLogout);
 
-
-    /* 
-      ===========================================
-      관리자 대시보드 로직
-      ===========================================
-    */
+    /* ========================================================
+       Admin Dashboard Logic
+       ======================================================== */
     function initAdminDashboard() {
       showScreen('admin');
       document.getElementById('admin-name').textContent = currentUser.name;
-      switchAdminTab('tab-scanner');
+      window.switchAdminTab('tab-scanner');
       renderStudentsTable();
       renderStats();
       updateTestStudentSelect();
     }
 
-    // 탭 전환 로직
-    document.querySelectorAll('.admin-tab-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => switchAdminTab(e.currentTarget.getAttribute('data-target')));
-    });
-
-    function switchAdminTab(targetId) {
+    window.switchAdminTab = function(targetId) {
       document.querySelectorAll('.admin-tab-btn').forEach(btn => {
         if(btn.getAttribute('data-target') === targetId) {
           btn.className = 'admin-tab-btn active flex items-center px-5 py-4 rounded-2xl transition-all whitespace-nowrap md:w-full bg-blue-600 text-white shadow-md shadow-blue-200';
@@ -489,35 +499,31 @@
       });
       document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.add('hidden'));
       document.getElementById(targetId).classList.remove('hidden');
-      
-      if(targetId !== 'tab-scanner') stopCamera(); // 스캐너 탭 벗어나면 카메라 종료
+      if(targetId !== 'tab-scanner') window.stopCamera(); 
     }
 
-    // 학생 등록
-    document.getElementById('add-student-form').addEventListener('submit', (e) => {
+    document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => window.switchAdminTab(e.currentTarget.getAttribute('data-target')));
+    });
+
+    // Add Student Submit
+    document.getElementById('add-student-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = document.getElementById('new-std-id').value.trim();
       const name = document.getElementById('new-std-name').value.trim();
       const pw = document.getElementById('new-std-pw').value.trim();
 
-      const success = dbEngine.addUser({ id, name, password: pw });
+      const success = await window.dbAddUser({ id, name, password: pw });
       if (success) {
-        showToast('학생 등록이 완료되었습니다!');
+        showToast('학생 등록 완료!');
         e.target.reset();
       } else {
-        showToast('이미 존재하는 학번입니다.', 'error');
+        showToast('이미 존재하는 학번이거나 권한이 없습니다.', 'error');
       }
     });
 
-    // 학생 삭제 (HTML onclick 용)
-    window.deleteStudent = (docId) => {
-      dbEngine.deleteUser(docId);
-      showToast('학생이 삭제되었습니다.');
-    }
-
-    // 학생 리스트 테이블 그리기
     function renderStudentsTable() {
-      const students = allUsers.filter(u => u.role === 'student');
+      const students = window.allUsers.filter(u => u.role === 'student');
       document.getElementById('student-count').textContent = `총 ${students.length}명`;
       const tbody = document.getElementById('students-tbody');
       
@@ -532,7 +538,7 @@
           <td class="p-4 text-gray-700 font-bold">${s.name}</td>
           <td class="p-4 text-gray-400 text-sm font-mono font-bold">${s.password}</td>
           <td class="p-4 text-center">
-            <button onclick="deleteStudent('${s.docId}')" class="p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors focus:outline-none">
+            <button onclick="window.dbDeleteUser('${s.docId}')" class="p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors focus:outline-none">
               <i class="fa-solid fa-trash-can text-lg"></i>
             </button>
           </td>
@@ -540,23 +546,16 @@
       `).join('');
     }
 
-    /* 
-      ===========================================
-      급식 현황 통계 & 명단 토글 로직
-      ===========================================
-    */
-    document.getElementById('card-ate').addEventListener('click', () => { statViewMode = 'ate'; renderStats(); });
-    document.getElementById('card-not-ate').addEventListener('click', () => { statViewMode = 'notAte'; renderStats(); });
-
-    window.cancelMeal = (docId) => {
-      dbEngine.deleteAttendance(docId);
-      showToast('식사 완료 처리가 취소되었습니다.', 'success');
-    }
+    /* ========================================================
+       Admin Dashboard - Stats & Toggle Logic
+       ======================================================== */
+    document.getElementById('card-ate').addEventListener('click', () => { window.statViewMode = 'ate'; renderStats(); });
+    document.getElementById('card-not-ate').addEventListener('click', () => { window.statViewMode = 'notAte'; renderStats(); });
 
     function renderStats() {
-      const students = allUsers.filter(u => u.role === 'student');
+      const students = window.allUsers.filter(u => u.role === 'student');
       const total = students.length;
-      const ateCount = todayAttendance.length;
+      const ateCount = window.todayAttendance.length;
       const notAteCount = total - ateCount;
       const percent = total === 0 ? 0 : Math.round((ateCount / total) * 100);
 
@@ -569,8 +568,7 @@
       const cardAte = document.getElementById('card-ate');
       const cardNotAte = document.getElementById('card-not-ate');
       
-      // 토글 카드 디자인 변경
-      if(statViewMode === 'ate') {
+      if(window.statViewMode === 'ate') {
         cardAte.className = "p-4 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-blue-600 text-white shadow-lg shadow-blue-200 ring-2 ring-blue-600 ring-offset-2";
         cardAte.querySelector('p').classList.replace('text-gray-500', 'text-blue-100');
         cardAte.querySelector('span:last-child').classList.replace('text-gray-400', 'text-blue-200');
@@ -587,27 +585,26 @@
         cardAte.querySelector('span:last-child').classList.replace('text-blue-200', 'text-gray-400');
       }
 
-      // 하단 명단 렌더링
       const titleEl = document.getElementById('stat-list-title');
       const listEl = document.getElementById('stat-list-container');
       
-      if(statViewMode === 'ate') {
+      if(window.statViewMode === 'ate') {
         titleEl.innerHTML = `<i class="fa-solid fa-circle-check text-blue-600 mr-2"></i> 식사 완료 학생 명단`;
-        if(todayAttendance.length === 0) {
+        if(window.todayAttendance.length === 0) {
           listEl.innerHTML = `<p class="text-gray-400 text-sm font-bold p-6 bg-gray-50 rounded-2xl w-full text-center border border-dashed border-gray-200">아직 밥을 먹은 학생이 없습니다.</p>`;
         } else {
-          listEl.innerHTML = todayAttendance.map(record => {
+          listEl.innerHTML = window.todayAttendance.map(record => {
             const s = students.find(x => x.id === record.studentId);
             if(!s) return '';
             return `<span class="px-4 py-2 bg-blue-50 text-blue-800 border border-blue-200 rounded-xl text-sm font-extrabold flex items-center shadow-sm animate-in fade-in">
               ${s.name} <span class="font-bold text-blue-500/80 ml-1.5 text-xs">(${s.id})</span>
-              <button onclick="cancelMeal('${record.docId}')" class="ml-3 text-blue-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-md transition-colors focus:outline-none" title="식사 취소"><i class="fa-solid fa-xmark text-lg"></i></button>
+              <button onclick="window.dbDeleteAttendance('${record.docId}')" class="ml-3 text-blue-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-md transition-colors focus:outline-none" title="식사 취소"><i class="fa-solid fa-xmark text-lg"></i></button>
             </span>`;
           }).join('');
         }
       } else {
-        titleEl.innerHTML = `<i class="fa-solid fa-user-clock text-gray-600 mr-2"></i> 아직 밥 안 먹은(미식사) 명단`;
-        const notAteStudents = students.filter(s => !todayAttendance.some(a => a.studentId === s.id));
+        titleEl.innerHTML = `<i class="fa-solid fa-user-clock text-gray-600 mr-2"></i> 미식사 명단 (안 먹은 학생)`;
+        const notAteStudents = students.filter(s => !window.todayAttendance.some(a => a.studentId === s.id));
         
         if(notAteStudents.length === 0 && students.length > 0) {
           listEl.innerHTML = `<p class="text-green-600 text-base font-extrabold p-6 bg-green-50 rounded-2xl w-full text-center flex items-center justify-center border border-dashed border-green-200">모든 학생이 식사를 완료했습니다! 🎉</p>`;
@@ -623,51 +620,53 @@
       }
     }
 
-
-    /* 
-      ===========================================
-      QR 스캐너 및 수동 테스트 로직
-      ===========================================
-    */
+    /* ========================================================
+       Admin Dashboard - QR Scanner
+       ======================================================== */
     const videoEl = document.getElementById('qr-video');
     const canvasEl = document.getElementById('qr-canvas');
-    const overlayEl = document.getElementById('video-overlay');
-    const placeholderEl = document.getElementById('video-placeholder');
     const cameraBtn = document.getElementById('btn-toggle-camera');
 
+    window.isCameraActive = false;
+    window.streamRef = null;
+    window.requestRef = null;
+    window.pendingScanStudent = null;
+
     cameraBtn.addEventListener('click', () => {
-      if(isCameraActive) stopCamera();
-      else startCamera();
+      if(window.isCameraActive) window.stopCamera();
+      else window.startCamera();
     });
 
-    async function startCamera() {
-      if (!window.jsQR) { showToast('스캐너 엔진 로딩중입니다.', 'error'); return; }
+    window.startCamera = async function() {
+      if (!window.jsQR) { showToast('스캐너 로딩 중입니다.', 'error'); return; }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        streamRef = stream;
-        isCameraActive = true;
-        pendingScanStudent = null;
+        window.streamRef = stream;
+        window.isCameraActive = true;
+        window.pendingScanStudent = null;
         updateScannerUI();
         
         setTimeout(() => {
           videoEl.srcObject = stream;
-          videoEl.play().then(() => { requestRef = requestAnimationFrame(tickScanner); })
+          videoEl.setAttribute("playsinline", true);
+          videoEl.muted = true;
+          videoEl.play().then(() => { window.requestRef = requestAnimationFrame(tickScanner); })
                         .catch(err => console.error(err));
         }, 150);
       } catch (err) { 
-        showToast('카메라 권한이 없거나 지원하지 않는 브라우저입니다. 하단의 수동 테스트를 이용해주세요.', 'error'); 
+        showToast('카메라 권한이 없거나 지원하지 않는 기기입니다. 수동 테스트를 이용해주세요.', 'error'); 
       }
     }
 
-    function stopCamera() {
-      if (streamRef) { streamRef.getTracks().forEach(t => t.stop()); streamRef = null; }
-      if (requestRef) cancelAnimationFrame(requestRef);
-      isCameraActive = false;
+    window.stopCamera = function() {
+      if (window.streamRef) { window.streamRef.getTracks().forEach(t => t.stop()); window.streamRef = null; }
+      if (window.requestRef) cancelAnimationFrame(window.requestRef);
+      window.isCameraActive = false;
       updateScannerUI();
     }
 
     function tickScanner() {
-      if (!videoEl || !canvasEl || !isCameraActive) return;
+      if (!videoEl || !canvasEl || !window.isCameraActive) return;
       if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
         canvasEl.width = videoEl.videoWidth;
         canvasEl.height = videoEl.videoHeight;
@@ -678,33 +677,32 @@
         const code = window.jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
 
         if (code) processScanData(code.data);
-        else requestRef = requestAnimationFrame(tickScanner);
+        else window.requestRef = requestAnimationFrame(tickScanner);
       } else {
-        requestRef = requestAnimationFrame(tickScanner);
+        window.requestRef = requestAnimationFrame(tickScanner);
       }
     }
 
     function processScanData(data) {
       try {
-        stopCamera();
+        window.stopCamera();
         const decoded = atob(data);
         const [studentId, timeStr] = decoded.split('|');
         const timeWindow = parseInt(timeStr, 10);
         const currentTimeWindow = Math.floor(Date.now() / 60000);
 
-        // 캡처본 방지 로직 (1분 초과 불가)
         if (currentTimeWindow - timeWindow > 1 || currentTimeWindow < timeWindow) {
           showToast('만료되었거나 유효하지 않은 QR코드입니다. (캡처본 의심)', 'error'); return;
         }
 
-        const student = allUsers.find(u => u.id === studentId && u.role === 'student');
-        if (!student) { showToast('등록되지 않은 학생의 바코드입니다.', 'error'); return; }
+        const student = window.allUsers.find(u => u.id === studentId && u.role === 'student');
+        if (!student) { showToast('등록되지 않은 학생입니다.', 'error'); return; }
 
-        if (todayAttendance.some(a => a.studentId === studentId)) {
+        if (window.todayAttendance.some(a => a.studentId === studentId)) {
           showToast(`이미 식사를 완료한 학생입니다. (${student.name})`, 'error'); return;
         }
 
-        pendingScanStudent = student;
+        window.pendingScanStudent = student;
         updateScannerUI();
       } catch (err) { showToast('스마트 석식 패스용 QR코드가 아닙니다.', 'error'); }
     }
@@ -713,26 +711,26 @@
       const cameraUI = document.getElementById('scanner-camera-ui');
       const pendingUI = document.getElementById('scanner-pending-ui');
       
-      if (pendingScanStudent) {
+      if (window.pendingScanStudent) {
         cameraUI.classList.add('hidden');
         pendingUI.classList.remove('hidden');
-        document.getElementById('pending-student-name').textContent = pendingScanStudent.name + ' 학생';
-        document.getElementById('pending-student-id').textContent = '학번: ' + pendingScanStudent.id;
+        document.getElementById('pending-student-name').textContent = window.pendingScanStudent.name + ' 학생';
+        document.getElementById('pending-student-id').textContent = '학번: ' + window.pendingScanStudent.id;
       } else {
         pendingUI.classList.add('hidden');
         cameraUI.classList.remove('hidden');
         
-        if (isCameraActive) {
+        if (window.isCameraActive) {
           videoEl.classList.remove('hidden');
-          overlayEl.classList.remove('hidden');
-          placeholderEl.classList.add('opacity-0');
+          document.getElementById('video-overlay').classList.remove('hidden');
+          document.getElementById('video-placeholder').classList.add('opacity-0');
           document.getElementById('video-container').classList.replace('bg-gray-50', 'bg-gray-900');
           cameraBtn.textContent = "카메라 끄기";
           cameraBtn.className = "w-full max-w-md px-6 py-4 bg-red-50 text-red-600 font-bold rounded-2xl transition-colors hover:bg-red-100 border border-red-100 mt-4 text-lg";
         } else {
           videoEl.classList.add('hidden');
-          overlayEl.classList.add('hidden');
-          placeholderEl.classList.remove('opacity-0');
+          document.getElementById('video-overlay').classList.add('hidden');
+          document.getElementById('video-placeholder').classList.remove('opacity-0');
           document.getElementById('video-container').classList.replace('bg-gray-900', 'bg-gray-50');
           cameraBtn.textContent = "카메라 켜기";
           cameraBtn.className = "w-full max-w-md px-6 py-4 bg-gray-900 text-white font-bold rounded-2xl transition-all hover:bg-gray-800 shadow-md mt-4 active:scale-95 text-lg";
@@ -740,20 +738,21 @@
       }
     }
 
-    document.getElementById('btn-confirm-meal').addEventListener('click', () => {
-      if(!pendingScanStudent) return;
-      dbEngine.addAttendance(pendingScanStudent.id);
-      showToast(`✅ ${pendingScanStudent.name} 학생 식사 확인 완료!`);
-      pendingScanStudent = null;
+    document.getElementById('btn-confirm-meal').addEventListener('click', async () => {
+      if(!window.pendingScanStudent) return;
+      const success = await window.dbAddAttendance(window.pendingScanStudent.id);
+      if(success) {
+        showToast(`✅ ${window.pendingScanStudent.name} 학생 식사 확인 완료!`);
+      }
+      window.pendingScanStudent = null;
       updateScannerUI();
     });
 
     document.getElementById('btn-cancel-meal').addEventListener('click', () => {
-      pendingScanStudent = null;
+      window.pendingScanStudent = null;
       updateScannerUI();
     });
 
-    // 수동 스캔 
     document.getElementById('manual-scan-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const input = document.getElementById('manual-scan-input');
@@ -762,7 +761,7 @@
 
     function updateTestStudentSelect() {
       const select = document.getElementById('test-student-select');
-      const students = allUsers.filter(u => u.role === 'student');
+      const students = window.allUsers.filter(u => u.role === 'student');
       select.innerHTML = '<option value="">등록된 학생 선택</option>' + 
         students.map(s => `<option value="${s.id}">${s.name} (${s.id})</option>`).join('');
     }
@@ -773,15 +772,14 @@
       const currentMinute = Math.floor(Date.now() / 60000);
       const raw = `${select.value}|${currentMinute}`;
       document.getElementById('manual-scan-input').value = btoa(raw);
-      showToast('텍스트가 자동 입력되었습니다. [스캔 확인]을 누르세요.');
+      showToast('텍스트가 자동 생성되었습니다. [스캔 확인]을 누르세요.');
     });
 
+    /* ========================================================
+       Student Dashboard Logic
+       ======================================================== */
+    window.studentInterval = null;
 
-    /* 
-      ===========================================
-      학생 대시보드 (QR 화면)
-      ===========================================
-    */
     function initStudentDashboard() {
       showScreen('student');
       document.getElementById('student-display-name').textContent = currentUser.name;
@@ -792,20 +790,20 @@
     function updateStudentUI() {
       if(!currentUser || currentUser.role !== 'student') return;
       
-      const hasAte = todayAttendance.some(a => a.studentId === currentUser.id);
+      const hasAte = window.todayAttendance.some(a => a.studentId === currentUser.id);
       const successUI = document.getElementById('student-success-ui');
       const qrUI = document.getElementById('student-qr-ui');
 
       if (hasAte) {
         successUI.classList.remove('hidden');
         qrUI.classList.add('hidden');
-        if(studentInterval) clearInterval(studentInterval);
+        if(window.studentInterval) clearInterval(window.studentInterval);
       } else {
         successUI.classList.add('hidden');
         qrUI.classList.remove('hidden');
         generateStudentQR();
-        if(studentInterval) clearInterval(studentInterval);
-        studentInterval = setInterval(generateStudentQR, 1000);
+        if(window.studentInterval) clearInterval(window.studentInterval);
+        window.studentInterval = setInterval(generateStudentQR, 1000);
       }
     }
 
@@ -832,6 +830,9 @@
       }
       timeBar.style.width = `${(secondsLeft / 60) * 100}%`;
     }
+
+    // Start App
+    initCloudDatabase();
 
   </script>
 </body>
