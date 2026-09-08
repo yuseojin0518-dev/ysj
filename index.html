@@ -44,7 +44,7 @@
           <i class="fa-solid fa-qrcode text-white text-4xl"></i>
         </div>
         <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">스마트 석식 패스</h1>
-        <p class="text-gray-500 mt-2 text-sm font-medium">단독 실행 모드 (서버 불필요)</p>
+        <p class="text-gray-500 mt-2 text-sm font-medium">학교 급식실 QR 인증 시스템</p>
       </div>
 
       <form id="login-form" class="space-y-5">
@@ -284,31 +284,52 @@
     </div>
   </div>
 
-  <script>
-    // 오늘 날짜 문자열 생성 (예: 20231025)
+  <script type="module">
+    // Firebase 모듈 불러오기 (CDN 방식)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // =========================================================================
+    // 🔥 선생님의 Firebase 키를 여기에 붙여넣으세요! 🔥
+    // =========================================================================
+    const firebaseConfig = {
+       apiKey: "AIzaSyD1QMc6FSNZxF4zu--dkcniXkXMLtzN5DA",
+  authDomain: "smartmealpass-2e138.firebaseapp.com",
+  projectId: "smartmealpass-2e138",
+  storageBucket: "smartmealpass-2e138.firebasestorage.app",
+  messagingSenderId: "920000501267",
+  appId: "1:920000501267:web:c8c06d437a7c11f38c91e6",
+  measurementId: "G-5GE5DESWM5"
+};
+    // =========================================================================
+
+    // Firebase 초기화
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 날짜 문자열 (예: 20260908)
     const todayStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '').replace(/\s/g, '');
     
+    // 글로벌 변수
+    window.allUsers = [];
+    window.todayAttendance = [];
     let currentUser = null;
-    
-    // 브라우저 LocalStorage에서 데이터 불러오기 (없으면 빈 배열)
-    window.allUsers = JSON.parse(localStorage.getItem('mealPass_users')) || [];
-    window.allAttendance = JSON.parse(localStorage.getItem('mealPass_attendance')) || [];
-    window.todayAttendance = window.allAttendance.filter(a => a.date === todayStr);
-    window.statViewMode = 'ate'; // 'ate' or 'notAte'
+    window.statViewMode = 'ate'; // 'ate' 또는 'notAte'
 
-    // LocalStorage에 데이터 영구 저장 함수
-    function saveData() {
-      localStorage.setItem('mealPass_users', JSON.stringify(window.allUsers));
-      localStorage.setItem('mealPass_attendance', JSON.stringify(window.allAttendance));
-    }
-
-    // UI Elements
+    // UI 요소
     const toastEl = document.getElementById('toast');
     const screens = {
       login: document.getElementById('login-screen'),
       admin: document.getElementById('admin-dashboard'),
       student: document.getElementById('student-dashboard')
     };
+
+    // 익명 로그인 수행 (데이터베이스 읽기/쓰기 권한 획득용)
+    signInAnonymously(auth).catch((error) => {
+      console.error("Firebase 익명 로그인 실패:", error);
+    });
 
     let toastTimeout;
     window.showToast = function(msg, type = 'success') {
@@ -324,63 +345,67 @@
       screens[screenName].classList.remove('hidden');
     }
 
-    /* ========================================================
-       데이터베이스 연산 (Write Operations) - LocalStorage
-       ======================================================== */
-    // 학생 추가
-    window.dbAddUser = async function(userObj) {
-      if (window.allUsers.some(u => u.id === userObj.id)) return { success: false, msg: '이미 존재하는 학번입니다.' };
-      
-      const newUser = { docId: Date.now().toString(), role: 'student', ...userObj };
-      window.allUsers.push(newUser);
-      saveData(); // 기기에 저장
-      
+    // 학생 목록 동기화
+    onSnapshot(collection(db, "mealPass_users"), (snapshot) => {
+      window.allUsers = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
       if (currentUser?.role === 'admin') {
         renderStudentsTable();
         renderStats();
         updateTestStudentSelect();
       }
-      return { success: true };
-    }
+    });
 
-    // 학생 삭제
-    window.dbDeleteUser = async function(docId) {
-      window.allUsers = window.allUsers.filter(u => u.docId !== docId);
-      saveData(); // 기기에 저장
-      
-      renderStudentsTable();
-      renderStats();
-      updateTestStudentSelect();
-      showToast('학생 정보가 삭제되었습니다.');
-    }
-
-    // 식사 완료 (출석 체크)
-    window.dbAddAttendance = async function(studentId) {
-      if (window.todayAttendance.some(a => a.studentId === studentId)) return false;
-      
-      const newRecord = { docId: Date.now().toString(), studentId, date: todayStr, timestamp: Date.now() };
-      window.allAttendance.push(newRecord);
-      window.todayAttendance.push(newRecord);
-      saveData(); // 기기에 저장
-      
+    // 오늘 식사 기록 동기화
+    const attendanceQuery = query(collection(db, "mealPass_attendance"), where("date", "==", todayStr));
+    onSnapshot(attendanceQuery, (snapshot) => {
+      window.todayAttendance = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
       if (currentUser?.role === 'admin') renderStats();
       if (currentUser?.role === 'student') updateStudentUI();
-      return true;
+    });
+
+    window.dbAddUser = async function(userObj) {
+      if (window.allUsers.some(u => u.id === userObj.id)) return { success: false, msg: '이미 존재하는 학번입니다.' };
+      try {
+        await addDoc(collection(db, "mealPass_users"), { role: 'student', ...userObj });
+        return { success: true };
+      } catch (error) {
+        return { success: false, msg: '서버 저장 실패! DB 규칙을 확인하세요.' };
+      }
     }
 
-    // 식사 기록 삭제 (취소)
+    window.dbDeleteUser = async function(docId) {
+      try {
+        await deleteDoc(doc(db, "mealPass_users", docId));
+        showToast('학생 정보가 삭제되었습니다.');
+      } catch (error) {
+        showToast('서버 삭제 실패', 'error');
+      }
+    }
+
+    window.dbAddAttendance = async function(studentId) {
+      if (window.todayAttendance.some(a => a.studentId === studentId)) return false;
+      try {
+        await addDoc(collection(db, "mealPass_attendance"), { 
+          studentId: studentId, 
+          date: todayStr, 
+          timestamp: Date.now() 
+        });
+        return true;
+      } catch (error) {
+        showToast('서버 통신 실패', 'error');
+        return false;
+      }
+    }
+
     window.dbDeleteAttendance = async function(docId) {
-      window.allAttendance = window.allAttendance.filter(a => a.docId !== docId);
-      window.todayAttendance = window.todayAttendance.filter(a => a.docId !== docId);
-      saveData(); // 기기에 저장
-      
-      if (currentUser?.role === 'admin') renderStats();
-      showToast('식사 확인이 취소되었습니다.', 'success');
+      try {
+        await deleteDoc(doc(db, "mealPass_attendance", docId));
+        showToast('식사 확인이 취소되었습니다.', 'success');
+      } catch (error) {
+        showToast('서버 삭제 실패', 'error');
+      }
     }
 
-    /* ========================================================
-       로그인 및 화면 라우팅 로직
-       ======================================================== */
     document.getElementById('login-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const id = document.getElementById('login-id').value.trim();
@@ -416,9 +441,6 @@
     document.getElementById('btn-admin-logout').addEventListener('click', window.handleLogout);
     document.getElementById('btn-student-logout').addEventListener('click', window.handleLogout);
 
-    /* ========================================================
-       관리자 대시보드 로직
-       ======================================================== */
     function initAdminDashboard() {
       showScreen('admin');
       document.getElementById('admin-name').textContent = currentUser.name;
@@ -484,7 +506,6 @@
       `).join('');
     }
 
-    // 급식 현황(통계) 탭 클릭 이벤트
     document.getElementById('card-ate').addEventListener('click', () => { window.statViewMode = 'ate'; renderStats(); });
     document.getElementById('card-not-ate').addEventListener('click', () => { window.statViewMode = 'notAte'; renderStats(); });
 
@@ -504,7 +525,6 @@
       const cardAte = document.getElementById('card-ate');
       const cardNotAte = document.getElementById('card-not-ate');
       
-      // 카드 스타일 변경 (활성화 여부에 따라)
       if(window.statViewMode === 'ate') {
         cardAte.className = "p-4 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-blue-600 text-white shadow-lg shadow-blue-200 ring-2 ring-blue-600 ring-offset-2";
         cardAte.querySelector('p').classList.replace('text-gray-500', 'text-blue-100');
@@ -525,7 +545,6 @@
       const titleEl = document.getElementById('stat-list-title');
       const listEl = document.getElementById('stat-list-container');
       
-      // 하단 리스트 렌더링
       if(window.statViewMode === 'ate') {
         titleEl.innerHTML = `<i class="fa-solid fa-circle-check text-blue-600 mr-2"></i> 식사 완료 학생 명단`;
         if(window.todayAttendance.length === 0) {
@@ -558,9 +577,6 @@
       }
     }
 
-    /* ========================================================
-       카메라 및 QR 스캐너 로직
-       ======================================================== */
     const videoEl = document.getElementById('qr-video');
     const canvasEl = document.getElementById('qr-canvas');
     const cameraBtn = document.getElementById('btn-toggle-camera');
@@ -576,7 +592,7 @@
     });
 
     window.startCamera = async function() {
-      if (!window.jsQR) { showToast('스캐너 로딩 중입니다.', 'error'); return; }
+      if (!window.jsQR) { showToast('스캐너 엔진 로딩 중입니다.', 'error'); return; }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         window.streamRef = stream;
@@ -679,9 +695,7 @@
     document.getElementById('btn-confirm-meal').addEventListener('click', async () => {
       if(!window.pendingScanStudent) return;
       const success = await window.dbAddAttendance(window.pendingScanStudent.id);
-      if(success) {
-        showToast(`✅ ${window.pendingScanStudent.name} 학생 식사 확인 완료!`);
-      }
+      if(success) showToast(`✅ ${window.pendingScanStudent.name} 학생 식사 확인 완료!`);
       window.pendingScanStudent = null;
       updateScannerUI();
     });
@@ -691,7 +705,6 @@
       updateScannerUI();
     });
 
-    // 수동 스캔 테스트 기능
     document.getElementById('manual-scan-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const input = document.getElementById('manual-scan-input');
@@ -701,22 +714,17 @@
     function updateTestStudentSelect() {
       const select = document.getElementById('test-student-select');
       const students = window.allUsers.filter(u => u.role === 'student');
-      select.innerHTML = '<option value="">등록된 학생 선택</option>' + 
-        students.map(s => `<option value="${s.id}">${s.name} (${s.id})</option>`).join('');
+      select.innerHTML = '<option value="">학생 선택</option>' + students.map(s => `<option value="${s.id}">${s.name} (${s.id})</option>`).join('');
     }
 
     document.getElementById('btn-generate-test-qr').addEventListener('click', () => {
       const select = document.getElementById('test-student-select');
-      if(!select.value) { showToast('먼저 좌측에서 테스트할 학생을 선택하세요.', 'error'); return; }
-      const currentMinute = Math.floor(Date.now() / 60000);
-      const raw = `${select.value}|${currentMinute}`;
+      if(!select.value) { showToast('학생을 선택하세요.', 'error'); return; }
+      const raw = `${select.value}|${Math.floor(Date.now() / 60000)}`;
       document.getElementById('manual-scan-input').value = btoa(raw);
-      showToast('텍스트가 자동 생성되었습니다. [스캔 확인]을 누르세요.');
+      showToast('텍스트 자동 생성됨. [스캔 확인] 클릭');
     });
 
-    /* ========================================================
-       학생 대시보드 로직 (QR 생성)
-       ======================================================== */
     window.studentInterval = null;
 
     function initStudentDashboard() {
@@ -769,7 +777,6 @@
       }
       timeBar.style.width = `${(secondsLeft / 60) * 100}%`;
     }
-
   </script>
 </body>
 </html>
