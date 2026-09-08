@@ -350,8 +350,7 @@
     }
 
     async function initializeSystem() {
-      try {
-        // 제미나이 밖(CodeSandbox 등)에서 접속했는지 판별
+      const initTask = async () => {
         if (typeof __firebase_config === 'undefined') {
           throw new Error("외부 환경 접속 감지. 데이터베이스 연결을 건너뜁니다.");
         }
@@ -371,12 +370,26 @@
         
         // Listeners for DB
         setupFirestoreListeners();
+      };
+
+      try {
+        // 브라우저 보안 정책으로 인해 연결이 무한 대기하는 현상을 막고자 3초 타임아웃을 적용합니다.
+        await Promise.race([
+          initTask(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("데이터베이스 연결 지연")), 3000))
+        ]);
       } catch (error) {
         console.warn("System Init Info:", error.message);
         isLocalMode = true; 
-        showToast("제미나이 외부에서 접속하셨습니다. (새로고침 시 데이터 초기화)", "error");
+        
+        // 로컬 모드에서 테스트가 쉽도록 기본 학생을 1명 자동으로 추가해 둡니다.
+        allUsers = [
+          { docId: 'local_test_1', id: '30101', name: '김테스트', password: '123', role: 'student' }
+        ];
+        
+        showToast("오프라인 모드로 실행됩니다. (테스트 학생 30101번 자동 추가)", "error");
       } finally {
-        // 무조건 로딩 화면을 종료하고 로그인 화면으로 이동합니다! (무한 로딩 방지)
+        // 성공하든 실패하든 무조건 0.3초 뒤에 로딩을 끝내고 로그인 화면을 보여줍니다.
         setTimeout(() => showScreen('login'), 300);
       }
     }
@@ -587,4 +600,246 @@
         cardNotAte.className = "p-5 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-gray-900 text-white shadow-lg ring-2 ring-gray-900 ring-offset-2";
         cardNotAte.querySelector('p').classList.replace('text-gray-500', 'text-gray-400');
         
-        cardAte.className = "p-5 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-white text-gray-800 border border-gray-10
+        cardAte.className = "p-5 sm:p-6 rounded-3xl flex flex-col justify-center items-center cursor-pointer transition-all duration-200 active:scale-95 bg-white text-gray-800 border border-gray-100 hover:bg-blue-50/50 shadow-sm";
+        cardAte.querySelector('p').classList.replace('text-blue-100', 'text-gray-500');
+        cardAte.querySelector('span:last-child').classList.replace('text-blue-200', 'text-gray-400');
+      }
+
+      // Render List based on toggle
+      const titleEl = document.getElementById('stat-list-title');
+      const listEl = document.getElementById('stat-list-container');
+      
+      if(statViewMode === 'ate') {
+        titleEl.innerHTML = `<i class="fa-solid fa-circle-check text-blue-600 mr-2"></i> 식사 완료 학생 명단`;
+        if(todayAttendance.length === 0) {
+          listEl.innerHTML = `<p class="text-gray-400 text-sm font-bold p-6 bg-gray-50 rounded-2xl w-full text-center border border-dashed border-gray-200">아직 식사한 학생이 없습니다.</p>`;
+        } else {
+          listEl.innerHTML = todayAttendance.map(record => {
+            const s = students.find(x => x.id === record.studentId);
+            if(!s) return '';
+            return `<span class="px-3.5 py-2 bg-blue-50 text-blue-800 border border-blue-100 rounded-xl text-sm font-bold flex items-center shadow-sm animate-in fade-in">
+              ${s.name} <span class="font-medium text-blue-500/80 ml-1 text-xs">(${s.id})</span>
+              <button onclick="cancelMeal('${record.docId}')" class="ml-3 text-blue-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-md transition-colors" title="식사 취소"><i class="fa-solid fa-xmark"></i></button>
+            </span>`;
+          }).join('');
+        }
+      } else {
+        titleEl.innerHTML = `<i class="fa-solid fa-user-clock text-gray-600 mr-2"></i> 식사 대기(미식사) 명단`;
+        const notAteStudents = students.filter(s => !todayAttendance.some(a => a.studentId === s.id));
+        if(notAteStudents.length === 0 && students.length > 0) {
+          listEl.innerHTML = `<p class="text-green-600 text-sm font-bold p-6 bg-green-50 rounded-2xl w-full text-center flex items-center justify-center border border-dashed border-green-200">모든 학생이 식사를 완료했습니다! 🎉</p>`;
+        } else if (students.length === 0) {
+          listEl.innerHTML = `<p class="text-gray-400 text-sm font-bold p-6 bg-gray-50 rounded-2xl w-full text-center">등록된 학생이 없습니다.</p>`;
+        } else {
+          listEl.innerHTML = notAteStudents.map(s => `
+            <span class="px-3.5 py-2 bg-white text-gray-600 border border-gray-200 rounded-xl text-sm font-bold flex items-center shadow-sm animate-in fade-in">
+              ${s.name} <span class="text-gray-400 ml-1 text-xs font-medium">(${s.id})</span>
+            </span>
+          `).join('');
+        }
+      }
+    }
+
+    const videoEl = document.getElementById('qr-video');
+    const canvasEl = document.getElementById('qr-canvas');
+    const overlayEl = document.getElementById('video-overlay');
+    const placeholderEl = document.getElementById('video-placeholder');
+    const cameraBtn = document.getElementById('btn-toggle-camera');
+
+    cameraBtn.addEventListener('click', () => {
+      if(isCameraActive) stopCamera();
+      else startCamera();
+    });
+
+    async function startCamera() {
+      if (!window.jsQR) { showToast('스캐너를 불러오는 중입니다.', 'error'); return; }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        streamRef = stream;
+        isCameraActive = true;
+        pendingScanStudent = null;
+        updateScannerUI();
+        
+        // Delay to allow video tag to render, fixes black screen issue
+        setTimeout(() => {
+          videoEl.srcObject = stream;
+          videoEl.play().then(() => { requestRef = requestAnimationFrame(tickScanner); })
+                        .catch(err => console.error("Play error:", err));
+        }, 150);
+      } catch (err) { showToast('카메라 권한을 확인해주세요. (PC는 수동 테스트 권장)', 'error'); }
+    }
+
+    function stopCamera() {
+      if (streamRef) { streamRef.getTracks().forEach(t => t.stop()); streamRef = null; }
+      if (requestRef) cancelAnimationFrame(requestRef);
+      isCameraActive = false;
+      updateScannerUI();
+    }
+
+    function tickScanner() {
+      if (!videoEl || !canvasEl || !isCameraActive) return;
+      if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
+        canvasEl.width = videoEl.videoWidth;
+        canvasEl.height = videoEl.videoHeight;
+        const ctx = canvasEl.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+        const imgData = ctx.getImageData(0, 0, canvasEl.width, canvasEl.height);
+        const code = window.jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
+
+        if (code) processScanData(code.data);
+        else requestRef = requestAnimationFrame(tickScanner);
+      } else {
+        requestRef = requestAnimationFrame(tickScanner);
+      }
+    }
+
+    function processScanData(data) {
+      try {
+        stopCamera();
+        const decoded = atob(data);
+        const [studentId, timeStr] = decoded.split('|');
+        const timeWindow = parseInt(timeStr, 10);
+        const currentTimeWindow = Math.floor(Date.now() / 60000);
+
+        if (currentTimeWindow - timeWindow > 1 || currentTimeWindow < timeWindow) {
+          showToast('만료되었거나 유효하지 않은 QR코드입니다.', 'error'); return;
+        }
+
+        const student = allUsers.find(u => u.id === studentId && u.role === 'student');
+        if (!student) { showToast('등록되지 않은 학생입니다.', 'error'); return; }
+
+        if (todayAttendance.some(a => a.studentId === studentId)) {
+          showToast(`이미 식사를 완료한 학생입니다. (${student.name})`, 'error'); return;
+        }
+
+        pendingScanStudent = student;
+        updateScannerUI();
+      } catch (err) { showToast('올바르지 않은 QR 형식입니다.', 'error'); }
+    }
+
+    function updateScannerUI() {
+      const cameraUI = document.getElementById('scanner-camera-ui');
+      const pendingUI = document.getElementById('scanner-pending-ui');
+      
+      if (pendingScanStudent) {
+        cameraUI.classList.add('hidden');
+        pendingUI.classList.remove('hidden');
+        document.getElementById('pending-student-name').textContent = pendingScanStudent.name + ' 학생';
+        document.getElementById('pending-student-id').textContent = '학번: ' + pendingScanStudent.id;
+      } else {
+        pendingUI.classList.add('hidden');
+        cameraUI.classList.remove('hidden');
+        
+        if (isCameraActive) {
+          videoEl.classList.remove('hidden');
+          overlayEl.classList.remove('hidden');
+          placeholderEl.classList.add('opacity-0');
+          document.getElementById('video-container').classList.replace('bg-gray-50', 'bg-gray-900');
+          cameraBtn.textContent = "카메라 끄기";
+          cameraBtn.className = "w-full max-w-md px-6 py-4 bg-red-50 text-red-600 font-bold rounded-2xl transition-colors hover:bg-red-100 border border-red-100 mt-4";
+        } else {
+          videoEl.classList.add('hidden');
+          overlayEl.classList.add('hidden');
+          placeholderEl.classList.remove('opacity-0');
+          document.getElementById('video-container').classList.replace('bg-gray-900', 'bg-gray-50');
+          cameraBtn.textContent = "카메라 켜기";
+          cameraBtn.className = "w-full max-w-md px-6 py-4 bg-gray-900 text-white font-bold rounded-2xl transition-all hover:bg-gray-800 shadow-md mt-4 active:scale-95";
+        }
+      }
+    }
+
+    document.getElementById('btn-confirm-meal').addEventListener('click', async () => {
+      if(!pendingScanStudent) return;
+      
+      if(isLocalMode) {
+          todayAttendance.push({ docId: Date.now().toString(), studentId: pendingScanStudent.id });
+          showToast(`${pendingScanStudent.name} 식사 확인! (임시 로컬)`);
+          pendingScanStudent = null;
+          updateScannerUI();
+          renderStats();
+          return;
+      }
+
+      try {
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', `meal_attendance_${todayStr}`), { studentId: pendingScanStudent.id, timestamp: Date.now() });
+        showToast(`${pendingScanStudent.name} 식사 확인 완료!`);
+        pendingScanStudent = null;
+        updateScannerUI();
+      } catch(e) { showToast('등록 오류', 'error'); }
+    });
+
+    document.getElementById('btn-cancel-meal').addEventListener('click', () => {
+      pendingScanStudent = null;
+      updateScannerUI();
+    });
+
+    // Manual Scan Tool
+    document.getElementById('manual-scan-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('manual-scan-input');
+      if(input.value) { processScanData(input.value); input.value = ''; }
+    });
+
+    document.getElementById('btn-generate-test-qr').addEventListener('click', () => {
+      const select = document.getElementById('test-student-select');
+      if(!select.value) { showToast('학생을 선택하세요.', 'error'); return; }
+      const currentMinute = Math.floor(Date.now() / 60000);
+      const raw = `${select.value}|${currentMinute}`;
+      document.getElementById('manual-scan-input').value = btoa(raw);
+      showToast('입력창에 텍스트가 복사되었습니다. [스캔 확인]을 누르세요.');
+    });
+
+    function initStudentDashboard() {
+      showScreen('student');
+      document.getElementById('student-display-name').textContent = currentUser.name;
+      document.getElementById('student-display-id').textContent = '학번: ' + currentUser.id;
+      updateStudentUI();
+    }
+
+    function updateStudentUI() {
+      if(!currentUser || currentUser.role !== 'student') return;
+      
+      const hasAte = todayAttendance.some(a => a.studentId === currentUser.id);
+      const successUI = document.getElementById('student-success-ui');
+      const qrUI = document.getElementById('student-qr-ui');
+
+      if (hasAte) {
+        successUI.classList.remove('hidden');
+        qrUI.classList.add('hidden');
+        if(studentInterval) clearInterval(studentInterval);
+      } else {
+        successUI.classList.add('hidden');
+        qrUI.classList.remove('hidden');
+        generateStudentQR();
+        if(studentInterval) clearInterval(studentInterval);
+        studentInterval = setInterval(generateStudentQR, 1000);
+      }
+    }
+
+    function generateStudentQR() {
+      const currentMinute = Math.floor(Date.now() / 60000);
+      const rawData = `${currentUser.id}|${currentMinute}`;
+      const encoded = btoa(rawData);
+      
+      const img = document.getElementById('student-qr-img');
+      const newSrc = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(encoded)}&margin=1`;
+      if(img.src !== newSrc) img.src = newSrc; // Prevent flickering by only setting if changed
+      
+      let secondsLeft = 60 - (new Date().getSeconds());
+      const timeText = document.getElementById('student-time-left');
+      const timeBar = document.getElementById('student-time-bar');
+      
+      timeText.textContent = secondsLeft;
+      if (secondsLeft <= 10) {
+        timeText.classList.replace('text-blue-600', 'text-red-500');
+        timeBar.classList.replace('bg-blue-500', 'bg-red-500');
+      } else {
+        timeText.classList.replace('text-red-500', 'text-blue-600');
+        timeBar.classList.replace('bg-red-500', 'bg-blue-500');
+      }
+      timeBar.style.width = `${(secondsLeft / 60) * 100}%`;
+    }
+
+  </script>
+</body>
+</html>
