@@ -16,6 +16,7 @@
       import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
       import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+      // 선생님의 파이어베이스 고유 키
       const firebaseConfig = {
         apiKey: "AIzaSyD1QMc6FSNZxF4zu--dkcniXkXMLtzN5DA",
         authDomain: "smartmealpass-2e138.firebaseapp.com",
@@ -30,6 +31,7 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
 
+      // 전역 변수로 할당하여 다른 스크립트에서 접근 가능하도록 설정
       window.db = db;
       window.auth = auth;
       window.firebaseModules = { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc };
@@ -45,6 +47,7 @@
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col items-center justify-start">
 
+    <!-- 알림창 (Toast) UI -->
     <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-2xl shadow-xl z-50 text-white font-bold transition-all duration-300 opacity-0 pointer-events-none text-sm flex items-center gap-2">
       <span id="toast-icon"></span>
       <span id="toast-msg"></span>
@@ -83,7 +86,7 @@
         const { collection, onSnapshot } = firebaseModules;
 
         try {
-          await signInAnonymously(auth);
+          await signInAnonymously(auth); // 익명 로그인 권한 획득
         } catch (e) {
           console.error("Auth error:", e);
         }
@@ -102,7 +105,7 @@
           renderLogin();
         });
 
-        // 2. 오늘 출석 데이터 실시간 동기화
+        // 2. 오늘 출석(식사) 데이터 실시간 동기화
         const todayStr = getTodayStr();
         const attRef = collection(db, 'artifacts', 'smart_meal_pass_v1', 'public', 'data', `meal_attendance_${todayStr}`);
         unsubscribeAttendance = onSnapshot(attRef, (snapshot) => {
@@ -192,7 +195,7 @@
 
       function renderAdminDashboard() {
         window.activeAdminTab = window.activeAdminTab || 'scanner';
-        window.statViewMode = window.statViewMode || 'ate'; // 'target', 'ate', 'notAte'
+        window.statViewMode = window.statViewMode || 'ate'; // 통계 보기 모드: 'target', 'ate', 'notAte'
 
         const appEl = document.getElementById('app');
         appEl.innerHTML = `
@@ -228,6 +231,7 @@
 
             <!-- 컨텐츠 영역 -->
             <div class="flex-1 p-4 sm:p-6 md:p-8 max-w-5xl mx-auto w-full">
+              
               <!-- QR 스캐너 탭 -->
               <div id="tab-scanner" class="admin-tab-content ${window.activeAdminTab === 'scanner' ? '' : 'hidden'} grid md:grid-cols-2 gap-6 items-start">
                 <div class="bg-gray-50/60 p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center">
@@ -270,6 +274,7 @@
 
               <!-- 학생 관리 탭 -->
               <div id="tab-students" class="admin-tab-content ${window.activeAdminTab === 'students' ? '' : 'hidden'} grid md:grid-cols-2 gap-6 items-start">
+                <!-- 학생 등록 폼 -->
                 <div class="bg-gray-50/60 p-6 rounded-3xl shadow-sm border border-gray-100">
                   <h2 class="font-extrabold text-gray-900 mb-4 flex items-center gap-2">
                     <i class="fa-solid fa-user-plus text-blue-600"></i> 신규 학생 등록
@@ -315,6 +320,7 @@
                   </form>
                 </div>
 
+                <!-- 등록된 학생 명단 -->
                 <div class="bg-gray-50/60 p-6 rounded-3xl shadow-sm border border-gray-100">
                   <h2 class="font-extrabold text-gray-900 mb-4">등록된 학생 명단 (<span id="student-count">0</span>명)</h2>
                   <div id="student-list-container" class="space-y-2.5 max-h-[420px] overflow-y-auto pr-1"></div>
@@ -359,7 +365,7 @@
             </div>
           </div>
 
-          <!-- 학생 정보 수정 모달 -->
+          <!-- 학생 정보 수정 모달 (숨김 처리 기본) -->
           <div id="edit-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
             <div class="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95">
               <div class="flex justify-between items-center mb-6">
@@ -371,7 +377,7 @@
               <form id="edit-student-form" class="space-y-4">
                 <input type="hidden" id="edit-doc-id" />
                 <div>
-                  <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">학번</label>
+                  <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">학번 (변경불가)</label>
                   <input type="text" id="edit-id" class="w-full px-4 py-3 bg-gray-100 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 outline-none" disabled />
                 </div>
                 <div>
@@ -424,6 +430,7 @@
           showToast('로그아웃 되었습니다.');
         });
 
+        // 1. 신규 학생 등록 이벤트
         const addForm = document.getElementById('add-student-form');
         if (addForm) {
           addForm.addEventListener('submit', async (e) => {
@@ -432,6 +439,7 @@
             const name = document.getElementById('new-name').value.trim();
             const password = document.getElementById('new-pw').value.trim();
             
+            // 체크된 요일 값 가져오기
             const checkedDays = Array.from(document.querySelectorAll('input[name="study-day"]:checked')).map(el => parseInt(el.value));
 
             if (allUsers.some(u => u.id === id)) {
@@ -453,6 +461,7 @@
           });
         }
 
+        // 2. 학생 정보 수정(모달) 저장 이벤트
         const editForm = document.getElementById('edit-student-form');
         if (editForm) {
           editForm.addEventListener('submit', async (e) => {
@@ -476,6 +485,7 @@
           });
         }
 
+        // 3. 통계 카드 클릭 이벤트 (탭 전환 효과)
         const cardTarget = document.getElementById('card-target');
         const cardAte = document.getElementById('card-ate');
         const cardNotAte = document.getElementById('card-not-ate');
@@ -484,6 +494,7 @@
         if (cardAte) cardAte.addEventListener('click', () => { window.statViewMode = 'ate'; updateAdminStatsAndLists(); });
         if (cardNotAte) cardNotAte.addEventListener('click', () => { window.statViewMode = 'notAte'; updateAdminStatsAndLists(); });
 
+        // 4. 카메라 스캔 버튼
         const toggleCamBtn = document.getElementById('toggle-cam-btn');
         if (toggleCamBtn) {
           toggleCamBtn.addEventListener('click', () => {
@@ -495,6 +506,7 @@
           });
         }
 
+        // 5. 수동 입력(테스트) 버튼
         const manualBtn = document.getElementById('manual-scan-submit');
         if (manualBtn) {
           manualBtn.addEventListener('click', () => {
@@ -513,6 +525,7 @@
         document.getElementById('edit-name').value = student.name;
         document.getElementById('edit-pw').value = student.password;
 
+        // 기존 요일 체크박스 상태 갱신
         const dayCheckboxes = document.querySelectorAll('input[name="edit-study-day"]');
         dayCheckboxes.forEach(cb => {
           cb.checked = (student.studyDays || []).includes(parseInt(cb.value));
@@ -527,17 +540,23 @@
 
       function updateAdminStatsAndLists() {
         const students = allUsers.filter(u => u.role === 'student');
+        
+        // 전체 학생수 갱신
         const studentCountEl = document.getElementById('student-count');
         if (studentCountEl) studentCountEl.textContent = students.length;
 
+        // 오늘의 요일을 기준으로 '오늘 자습 대상 학생' 분류
         const dayOfWeek = getTodayDayOfWeek();
         const targetStudents = students.filter(s => s.studyDays && s.studyDays.includes(dayOfWeek));
         
         const ateCount = todayAttendance.length;
         const targetCount = targetStudents.length;
+        
+        // 미식사 학생 = 오늘 자습 대상 학생 중 출석 데이터에 없는 학생
         const notAteTargetStudents = targetStudents.filter(s => !todayAttendance.some(a => a.studentId === s.id));
         const notAteCount = notAteTargetStudents.length;
 
+        // 통계 숫자 UI 반영
         const statTargetCount = document.getElementById('stat-target-count');
         const statAteCount = document.getElementById('stat-ate-count');
         const statNotateCount = document.getElementById('stat-notate-count');
@@ -545,12 +564,14 @@
         if (statAteCount) statAteCount.textContent = ateCount;
         if (statNotateCount) statNotateCount.textContent = notAteCount;
 
+        // 달성률 바 업데이트
         const percent = targetCount === 0 ? 0 : Math.min(100, Math.round((ateCount / targetCount) * 100));
         const statPercent = document.getElementById('stat-percent');
         const statProgress = document.getElementById('stat-progress');
         if (statPercent) statPercent.textContent = percent + '%';
         if (statProgress) statProgress.style.width = percent + '%';
 
+        // 선택된 탭 스타일 하이라이팅
         const cTarget = document.getElementById('card-target');
         const cAte = document.getElementById('card-ate');
         const cNotAte = document.getElementById('card-not-ate');
@@ -560,6 +581,7 @@
           cNotAte.className = `p-5 md:p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition border border-gray-100 shadow-sm ${window.statViewMode === 'notAte' ? 'bg-gray-900 text-white ring-2 ring-gray-900 shadow-gray-200' : 'bg-gray-50/60 text-gray-800 hover:bg-gray-100'}`;
         }
 
+        // 1. [학생 관리 탭] 전체 등록 학생 명단 렌더링 (수정/삭제 기능 포함)
         const studentListEl = document.getElementById('student-list-container');
         if (studentListEl) {
           if (students.length === 0) {
@@ -584,16 +606,19 @@
           }
         }
 
+        // 2. [급식 현황 탭] 하단 통계 세부 명단 렌더링
         const listTitleEl = document.getElementById('stat-list-title');
         const listContainerEl = document.getElementById('stat-list-container');
         if (listTitleEl && listContainerEl) {
           if (window.statViewMode === 'target') {
+            // [오늘 자습 대상 학생] 리스트 표시
             listTitleEl.innerHTML = `<i class="fa-solid fa-list-check text-indigo-600 mr-1.5"></i> 오늘 자습 대상 학생 명단 (${targetCount}명)`;
             if (targetStudents.length === 0) {
               listContainerEl.innerHTML = `<p class="text-xs font-bold text-gray-400 py-4 w-full text-center">오늘(주말 또는 요일 해당 없음) 자습 예정인 학생이 없습니다.</p>`;
             } else {
               listContainerEl.innerHTML = targetStudents.map(s => {
                 const hasAte = todayAttendance.some(a => a.studentId === s.id);
+                // 밥을 먹은 사람은 파란색 배지, 안 먹은 사람은 회색 배지
                 return `
                   <span class="px-3.5 py-2 rounded-xl text-xs font-bold border flex items-center gap-2 ${hasAte ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-white text-gray-700 border-gray-200 shadow-sm'}">
                     <span class="w-2 h-2 rounded-full ${hasAte ? 'bg-blue-600' : 'bg-gray-300'}"></span>
@@ -603,6 +628,7 @@
               }).join('');
             }
           } else if (window.statViewMode === 'ate') {
+            // [식사 완료 학생] 리스트 표시
             listTitleEl.innerHTML = `<i class="fa-solid fa-circle-check text-blue-600 mr-1.5"></i> 식사 완료 학생 명단 (${ateCount}명)`;
             if (todayAttendance.length === 0) {
               listContainerEl.innerHTML = `<p class="text-xs font-bold text-gray-400 py-4 w-full text-center">아직 식사한 학생이 없습니다.</p>`;
@@ -619,6 +645,7 @@
               }).join('');
             }
           } else {
+            // [미식사 학생] 리스트 표시
             listTitleEl.innerHTML = `<i class="fa-solid fa-user-clock text-gray-800 mr-1.5"></i> 미식사 학생 명단 (${notAteCount}명)`;
             if (notAteTargetStudents.length === 0) {
               listContainerEl.innerHTML = `<p class="text-xs font-bold text-green-600 py-4 w-full text-center">오늘 자습 대상자가 모두 식사를 완료했습니다! 🎉</p>`;
@@ -792,15 +819,18 @@
 
       function renderStudentDashboard() {
         const appEl = document.getElementById('app');
+        
+        // 해당 학생이 오늘 식사를 완료했는지 확인
         const hasAte = todayAttendance.some(a => a.studentId === currentUser.id);
 
+        // 현재 요일이 학생의 '자습 요일'에 포함되는지 검사
         const dayOfWeek = getTodayDayOfWeek(); // 0:일, 1:월, 2:화, 3:수, 4:목, 5:금, 6:토
         const isStudyDay = (currentUser.studyDays || []).includes(dayOfWeek);
         const dayNames = ['', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
         const currentDayName = dayNames[dayOfWeek] || '오늘';
 
         appEl.innerHTML = `
-          <div class="min-h-screen md:min-h-[80vh] bg-white md:bg-white md:rounded-[2rem] md:shadow-xl md:border md:border-gray-100 flex flex-col items-center justify-center p-6 mb-8">
+          <div class="min-h-screen md:min-h-[80vh] bg-white md:bg-white md:rounded-[2rem] md:shadow-xl md:border md:border-gray-100 flex flex-col items-center justify-center p-6 mb-8 w-full max-w-md mx-auto">
             <header class="w-full max-w-md flex justify-between items-center mb-6">
               <div>
                 <h1 class="font-extrabold text-gray-900 text-lg">스마트 패스</h1>
@@ -812,21 +842,23 @@
             </header>
 
             <div class="bg-gray-50/60 p-8 rounded-[2.5rem] shadow-sm w-full max-w-md flex flex-col items-center text-center border border-gray-100 relative overflow-hidden">
-              <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-blue-600 mb-4 shadow-sm">
+              <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-blue-600 mb-4 shadow-sm border border-gray-100">
                 <i class="fa-solid fa-user-graduate text-2xl"></i>
               </div>
               <h2 class="text-xl font-extrabold text-gray-900 mb-1">${currentUser.name}</h2>
               <p class="text-xs font-bold text-gray-400 mb-8">학번: ${currentUser.id}</p>
 
               ${!isStudyDay ? `
+                <!-- 1. 자습일이 아닌 경우: QR 코드를 원천 차단하고 안내문 출력 -->
                 <div class="w-full bg-amber-50 border border-amber-200 rounded-3xl p-8 flex flex-col items-center text-amber-900 animate-in fade-in">
                   <div class="w-16 h-16 bg-amber-500 text-white rounded-full flex items-center justify-center mb-4 shadow-lg shadow-amber-200">
                     <i class="fa-solid fa-calendar-xmark text-2xl"></i>
                   </div>
                   <p class="font-extrabold text-lg mb-1">자습 대상 요일이 아닙니다</p>
-                  <p class="text-xs font-semibold text-amber-700 mt-1">오늘은 <span class="underline">${currentDayName}</span>이며, 설정된 자습 요일이 아닙니다.</p>
+                  <p class="text-xs font-semibold text-amber-700 mt-1">오늘은 <span class="underline font-bold">${currentDayName}</span>이며, 설정된 자습 요일이 아닙니다.</p>
                 </div>
               ` : hasAte ? `
+                <!-- 2. 식사 완료한 경우: 성공 메시지 출력 -->
                 <div class="w-full bg-blue-50 border border-blue-100 rounded-3xl p-8 flex flex-col items-center text-blue-900 animate-in fade-in">
                   <div class="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-200">
                     <i class="fa-solid fa-check text-2xl"></i>
@@ -835,6 +867,7 @@
                   <p class="text-xs font-semibold text-blue-600">맛있게 드세요! 😊</p>
                 </div>
               ` : `
+                <!-- 3. 자습일이고 밥을 안 먹은 경우: 정상적으로 QR 타이머 실행 -->
                 <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 mb-6 ring-4 ring-blue-50">
                   <img id="qr-img" src="" alt="QR" class="w-52 h-52 object-contain rounded-2xl" />
                 </div>
@@ -856,12 +889,14 @@
           </div>
         `;
 
+        // 요일 규칙을 통과하고, 밥을 아직 안 먹었을 때만 QR 타이머 실행
         if (isStudyDay && !hasAte) {
           startQrTimer();
         }
       }
 
       window.studentLogout = function() {
+        if (qrInterval) clearInterval(qrInterval); // 로그아웃 시 타이머 완전 정지
         currentUser = null;
         renderLogin();
         showToast('로그아웃 되었습니다.');
@@ -872,13 +907,19 @@
         if (qrInterval) clearInterval(qrInterval);
 
         const updateQr = () => {
-          if (!currentUser || todayAttendance.some(a => a.studentId === currentUser.id)) return;
+          // 보안 장치: 유저가 없거나 이미 밥을 먹은 경우(백그라운드에서 실행 방지)
+          if (!currentUser || todayAttendance.some(a => a.studentId === currentUser.id)) {
+            clearInterval(qrInterval);
+            return;
+          }
+          
           const currentMinute = Math.floor(Date.now() / 60000);
           const rawData = `${currentUser.id}|${currentMinute}`;
           const encoded = btoa(rawData);
           const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(encoded)}&margin=1`;
           
           const img = document.getElementById('qr-img');
+          // 이미지가 화면에 있을 때만 소스를 업데이트하여 오류 방지
           if (img && img.src !== qrUrl) img.src = qrUrl;
 
           const secLeft = 60 - (new Date().getSeconds());
