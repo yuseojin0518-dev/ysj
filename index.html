@@ -87,7 +87,6 @@
     </header>
 
     <div class="flex flex-col md:flex-row gap-6">
-      <!-- Admin Tabs -->
       <div class="md:w-64 flex flex-row md:flex-col gap-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar shrink-0">
         <button class="admin-tab-btn active flex items-center px-5 py-4 rounded-2xl transition-all whitespace-nowrap md:w-full bg-blue-600 text-white shadow-md shadow-blue-200" data-target="tab-scanner">
           <i class="fa-solid fa-expand w-6 text-center text-lg"></i><span class="ml-3 font-bold">QR 스캐너</span>
@@ -101,7 +100,6 @@
       </div>
 
       <div class="flex-1 min-w-0">
-        <!-- Tab: Scanner -->
         <div id="tab-scanner" class="admin-tab-content block space-y-6 animate-in">
           <div class="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col items-center">
             <h2 class="text-xl font-extrabold text-gray-800 mb-6 w-full text-left">실시간 QR 스캐너</h2>
@@ -139,7 +137,6 @@
             </div>
           </div>
 
-          <!-- Manual Tester -->
           <div class="bg-gray-50 p-6 rounded-3xl border border-gray-200 shadow-sm">
             <h3 class="text-sm font-bold text-gray-500 mb-4 flex items-center"><i class="fa-solid fa-keyboard mr-2"></i>카메라 불가 환경을 위한 수동 테스트</h3>
             <div class="flex flex-col gap-4">
@@ -157,7 +154,6 @@
           </div>
         </div>
 
-        <!-- Tab: Student Management -->
         <div id="tab-students" class="admin-tab-content hidden space-y-6 animate-in">
           <div class="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-gray-100">
             <h2 class="text-xl font-extrabold text-gray-800 mb-6 flex items-center">
@@ -194,7 +190,6 @@
           </div>
         </div>
 
-        <!-- Tab: Stats -->
         <div id="tab-stats" class="admin-tab-content hidden space-y-6 animate-in">
           <div class="grid grid-cols-3 gap-3 sm:gap-4">
             <div class="bg-white p-4 sm:p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
@@ -236,7 +231,6 @@
     </div>
   </div>
 
-  <!-- -->
   <div id="student-dashboard" class="min-h-screen flex flex-col items-center p-4 bg-gray-100 hidden animate-in">
     <header class="w-full max-w-sm flex justify-between items-center mb-8 mt-4">
       <h1 class="font-extrabold text-2xl text-gray-900 tracking-tight">스마트 패스</h1>
@@ -304,7 +298,7 @@
       // appId: "1:123456789:web:abcdefg"
     };
 
-    // GitHub 호스팅용 앱 식별자 (변경하지 않아도 됩니다)
+    // GitHub 호스팅용 앱 식별자 (변경하지 마세요)
     const appId = 'smart-meal-pass'; 
     const todayStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '').replace(/\s/g, '');
     
@@ -327,7 +321,7 @@
     };
 
     /* ========================================================
-       Utility Functions
+       유틸리티 함수
        ======================================================== */
     let toastTimeout;
     window.showToast = function(msg, type = 'success') {
@@ -344,11 +338,11 @@
     }
 
     /* ========================================================
-       Firebase Cloud Initialization (GitHub 맞춤형)
+       Firebase Cloud Initialization (순수 GitHub 맞춤형)
        ======================================================== */
     async function initCloudDatabase() {
-      // 키가 입력되지 않은 경우 경고 표시
-      if (!myFirebaseConfig.apiKey) {
+      // 키가 입력되지 않은 경우 강력한 경고 표시
+      if (!myFirebaseConfig.apiKey || myFirebaseConfig.apiKey.includes("AIzaSyXXXXXXXXXXXX")) {
         document.getElementById('firebase-warning').classList.remove('hidden');
         loginBtn.disabled = true;
         loginBtn.className = "w-full bg-gray-400 text-white font-bold py-4 px-4 rounded-2xl mt-4 text-lg cursor-not-allowed";
@@ -360,8 +354,7 @@
         db = getFirestore(app);
         auth = getAuth(app);
 
-        // 누구나 접속할 수 있도록 익명 로그인(Anonymous Auth) 사용
-        // (Firebase Console에서 익명 로그인을 반드시 활성화해야 합니다)
+        // 익명 로그인(Anonymous Auth) 사용
         await signInAnonymously(auth);
         isDbConnected = true;
         
@@ -378,7 +371,7 @@
     function setupRealtimeSync() {
       if (!auth.currentUser) return;
 
-      // 1. Listen to all students
+      // 학생 정보 실시간 동기화
       const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'meal_users');
       onSnapshot(usersRef, (snapshot) => {
         window.allUsers = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
@@ -389,7 +382,7 @@
         }
       }, (error) => console.error(error));
 
-      // 2. Listen to all attendance
+      // 출석(식사) 정보 실시간 동기화
       const attRef = collection(db, 'artifacts', appId, 'public', 'data', 'meal_attendance');
       onSnapshot(attRef, (snapshot) => {
         window.allAttendance = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
@@ -404,7 +397,7 @@
     }
 
     /* ========================================================
-       Firestore Write Operations
+       Firestore Write Operations (데이터 쓰기/삭제)
        ======================================================== */
     window.dbAddUser = async function(userObj) {
       if (!isDbConnected || !auth.currentUser) return { success: false, msg: 'DB 연결 안됨' };
@@ -448,11 +441,18 @@
     }
 
     /* ========================================================
-       Login & Routing Logic
+       로그인 및 화면 라우팅 로직
        ======================================================== */
     document.getElementById('login-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      if (!isDbConnected && myFirebaseConfig.apiKey) {
+      
+      // 설정 키가 없으면 에러
+      if (!myFirebaseConfig.apiKey || myFirebaseConfig.apiKey.includes("AIzaSyXXXXXXXXXXXX")) {
+        showToast('소스 코드에 Firebase 키를 먼저 입력해주세요.', 'error');
+        return;
+      }
+
+      if (!isDbConnected) {
         showToast('서버 연결 중입니다. 잠시 후 다시 시도해주세요.', 'error');
         return;
       }
@@ -460,14 +460,14 @@
       const id = document.getElementById('login-id').value.trim();
       const pw = document.getElementById('login-pw').value.trim();
 
-      // Admin Login
+      // 관리자 로그인
       if (id === 'ysj0518' && pw === 'ysj0518!') {
         currentUser = { role: 'admin', id: 'ysj0518', name: '관리자 선생님' };
         initAdminDashboard();
         return;
       }
       
-      // Student Login
+      // 학생 로그인
       const student = window.allUsers.find(u => u.id === id && u.password === pw && u.role === 'student');
       if (student) {
         currentUser = student;
@@ -492,7 +492,7 @@
     document.getElementById('btn-student-logout').addEventListener('click', window.handleLogout);
 
     /* ========================================================
-       Admin Dashboard Logic
+       관리자 대시보드 로직
        ======================================================== */
     function initAdminDashboard() {
       showScreen('admin');
@@ -520,7 +520,6 @@
       btn.addEventListener('click', (e) => window.switchAdminTab(e.currentTarget.getAttribute('data-target')));
     });
 
-    // Add Student Submit
     document.getElementById('add-student-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = e.target.querySelector('button[type="submit"]');
@@ -569,9 +568,6 @@
       `).join('');
     }
 
-    /* ========================================================
-       Admin Dashboard - Stats & Toggle Logic
-       ======================================================== */
     document.getElementById('card-ate').addEventListener('click', () => { window.statViewMode = 'ate'; renderStats(); });
     document.getElementById('card-not-ate').addEventListener('click', () => { window.statViewMode = 'notAte'; renderStats(); });
 
@@ -643,9 +639,6 @@
       }
     }
 
-    /* ========================================================
-       Admin Dashboard - QR Scanner
-       ======================================================== */
     const videoEl = document.getElementById('qr-video');
     const canvasEl = document.getElementById('qr-canvas');
     const cameraBtn = document.getElementById('btn-toggle-camera');
@@ -798,9 +791,6 @@
       showToast('텍스트가 자동 생성되었습니다. [스캔 확인]을 누르세요.');
     });
 
-    /* ========================================================
-       Student Dashboard Logic
-       ======================================================== */
     window.studentInterval = null;
 
     function initStudentDashboard() {
@@ -854,7 +844,6 @@
       timeBar.style.width = `${(secondsLeft / 60) * 100}%`;
     }
 
-    // Start App
     initCloudDatabase();
 
   </script>
