@@ -14,7 +14,7 @@
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
       import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-      import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+      import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyD1QMc6FSNZxF4zu--dkcniXkXMLtzN5DA",
@@ -32,7 +32,7 @@
 
       window.db = db;
       window.auth = auth;
-      window.firebaseModules = { collection, onSnapshot, addDoc, deleteDoc, doc };
+      window.firebaseModules = { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc };
 
       window.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -45,13 +45,12 @@
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col items-center justify-start">
 
-    <!-- 토스트 메시지 컴포넌트 -->
     <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-2xl shadow-xl z-50 text-white font-bold transition-all duration-300 opacity-0 pointer-events-none text-sm flex items-center gap-2">
       <span id="toast-icon"></span>
       <span id="toast-msg"></span>
     </div>
 
-    <!-- 메인 앱 컨테이너 (모바일은 폭 전체, 태블릿/PC는 꽉 찬 와이드 화면 지원) -->
+    <!-- 메인 앱 컨테이너 (컴퓨터/태블릿은 와이드 반응형, 모바일은 꽉 찬 화면) -->
     <div id="app" class="w-full max-w-full md:max-w-6xl min-h-screen flex flex-col bg-white md:bg-transparent shadow-sm md:shadow-none md:p-6">
       <!-- 초기 로딩 화면 -->
       <div id="loading-screen" class="flex-1 flex flex-col items-center justify-center p-8 space-y-4 bg-white rounded-3xl md:shadow-sm">
@@ -227,7 +226,7 @@
               </button>
             </div>
 
-            <!-- 컨텐츠 영역 (태블릿/PC 와이드 뷰 지원) -->
+            <!-- 컨텐츠 영역 -->
             <div class="flex-1 p-4 sm:p-6 md:p-8 max-w-5xl mx-auto w-full">
               <!-- QR 스캐너 탭 -->
               <div id="tab-scanner" class="admin-tab-content ${window.activeAdminTab === 'scanner' ? '' : 'hidden'} grid md:grid-cols-2 gap-6 items-start">
@@ -359,6 +358,54 @@
               </div>
             </div>
           </div>
+
+          <!-- 학생 정보 수정 모달 -->
+          <div id="edit-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+            <div class="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95">
+              <div class="flex justify-between items-center mb-6">
+                <h3 class="font-extrabold text-lg text-gray-900">학생 정보 수정</h3>
+                <button onclick="closeEditModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center transition">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+              <form id="edit-student-form" class="space-y-4">
+                <input type="hidden" id="edit-doc-id" />
+                <div>
+                  <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">학번</label>
+                  <input type="text" id="edit-id" class="w-full px-4 py-3 bg-gray-100 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 outline-none" disabled />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">이름</label>
+                  <input type="text" id="edit-name" class="w-full px-4 py-3 bg-white rounded-xl border border-gray-200 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" required />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">비밀번호</label>
+                  <input type="text" id="edit-pw" class="w-full px-4 py-3 bg-white rounded-xl border border-gray-200 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" required />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">자습(석식) 요일 수정 (월~목)</label>
+                  <div class="grid grid-cols-4 gap-2">
+                    <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-xs cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
+                      <input type="checkbox" name="edit-study-day" value="1" class="hidden" /> 월요일
+                    </label>
+                    <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-xs cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
+                      <input type="checkbox" name="edit-study-day" value="2" class="hidden" /> 화요일
+                    </label>
+                    <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-xs cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
+                      <input type="checkbox" name="edit-study-day" value="3" class="hidden" /> 수요일
+                    </label>
+                    <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-xs cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
+                      <input type="checkbox" name="edit-study-day" value="4" class="hidden" /> 목요일
+                    </label>
+                  </div>
+                </div>
+                <div class="flex gap-2 pt-2">
+                  <button type="submit" class="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition">저장하기</button>
+                  <button type="button" onclick="closeEditModal()" class="px-5 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl transition">취소</button>
+                </div>
+              </form>
+            </div>
+          </div>
         `;
 
         setupAdminListeners();
@@ -406,6 +453,29 @@
           });
         }
 
+        const editForm = document.getElementById('edit-student-form');
+        if (editForm) {
+          editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const docId = document.getElementById('edit-doc-id').value;
+            const name = document.getElementById('edit-name').value.trim();
+            const password = document.getElementById('edit-pw').value.trim();
+            const checkedDays = Array.from(document.querySelectorAll('input[name="edit-study-day"]:checked')).map(el => parseInt(el.value));
+
+            try {
+              const { db, firebaseModules } = window;
+              const { doc, updateDoc } = firebaseModules;
+              const userRef = doc(db, 'artifacts', 'smart_meal_pass_v1', 'public', 'data', 'meal_users', docId);
+              await updateDoc(userRef, { name, password, studyDays: checkedDays });
+              showToast('학생 정보가 수정되었습니다.');
+              closeEditModal();
+            } catch (err) {
+              showToast('수정 실패', 'error');
+              console.error(err);
+            }
+          });
+        }
+
         const cardTarget = document.getElementById('card-target');
         const cardAte = document.getElementById('card-ate');
         const cardNotAte = document.getElementById('card-not-ate');
@@ -433,6 +503,27 @@
           });
         }
       }
+
+      window.openEditModal = function(docId) {
+        const student = allUsers.find(u => u.docId === docId);
+        if (!student) return;
+
+        document.getElementById('edit-doc-id').value = student.docId;
+        document.getElementById('edit-id').value = student.id;
+        document.getElementById('edit-name').value = student.name;
+        document.getElementById('edit-pw').value = student.password;
+
+        const dayCheckboxes = document.querySelectorAll('input[name="edit-study-day"]');
+        dayCheckboxes.forEach(cb => {
+          cb.checked = (student.studyDays || []).includes(parseInt(cb.value));
+        });
+
+        document.getElementById('edit-modal').classList.remove('hidden');
+      };
+
+      window.closeEditModal = function() {
+        document.getElementById('edit-modal').classList.add('hidden');
+      };
 
       function updateAdminStatsAndLists() {
         const students = allUsers.filter(u => u.role === 'student');
@@ -480,9 +571,14 @@
                   <p class="font-extrabold text-sm text-gray-900">${s.name} <span class="text-xs font-medium text-gray-400 ml-1">(${s.id})</span></p>
                   <p class="text-[11px] font-semibold text-blue-600 mt-0.5">자습요일: ${(s.studyDays || []).map(d => ['', '월','화','수','목','금','토','일'][d]).join(', ') || '없음'}</p>
                 </div>
-                <button onclick="deleteStudent('${s.docId}')" class="w-8 h-8 rounded-xl bg-gray-50 border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200 flex items-center justify-center transition">
-                  <i class="fa-solid fa-trash-can text-xs"></i>
-                </button>
+                <div class="flex items-center gap-1.5">
+                  <button onclick="openEditModal('${s.docId}')" class="w-8 h-8 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 hover:text-blue-600 hover:border-blue-200 flex items-center justify-center transition" title="수정">
+                    <i class="fa-solid fa-pen text-xs"></i>
+                  </button>
+                  <button onclick="deleteStudent('${s.docId}')" class="w-8 h-8 rounded-xl bg-gray-50 border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200 flex items-center justify-center transition" title="삭제">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
+                  </button>
+                </div>
               </div>
             `).join('');
           }
@@ -698,6 +794,11 @@
         const appEl = document.getElementById('app');
         const hasAte = todayAttendance.some(a => a.studentId === currentUser.id);
 
+        const dayOfWeek = getTodayDayOfWeek(); // 0:일, 1:월, 2:화, 3:수, 4:목, 5:금, 6:토
+        const isStudyDay = (currentUser.studyDays || []).includes(dayOfWeek);
+        const dayNames = ['', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
+        const currentDayName = dayNames[dayOfWeek] || '오늘';
+
         appEl.innerHTML = `
           <div class="min-h-screen md:min-h-[80vh] bg-white md:bg-white md:rounded-[2rem] md:shadow-xl md:border md:border-gray-100 flex flex-col items-center justify-center p-6 mb-8">
             <header class="w-full max-w-md flex justify-between items-center mb-6">
@@ -717,7 +818,15 @@
               <h2 class="text-xl font-extrabold text-gray-900 mb-1">${currentUser.name}</h2>
               <p class="text-xs font-bold text-gray-400 mb-8">학번: ${currentUser.id}</p>
 
-              ${hasAte ? `
+              ${!isStudyDay ? `
+                <div class="w-full bg-amber-50 border border-amber-200 rounded-3xl p-8 flex flex-col items-center text-amber-900 animate-in fade-in">
+                  <div class="w-16 h-16 bg-amber-500 text-white rounded-full flex items-center justify-center mb-4 shadow-lg shadow-amber-200">
+                    <i class="fa-solid fa-calendar-xmark text-2xl"></i>
+                  </div>
+                  <p class="font-extrabold text-lg mb-1">자습 대상 요일이 아닙니다</p>
+                  <p class="text-xs font-semibold text-amber-700 mt-1">오늘은 <span class="underline">${currentDayName}</span>이며, 설정된 자습 요일이 아닙니다.</p>
+                </div>
+              ` : hasAte ? `
                 <div class="w-full bg-blue-50 border border-blue-100 rounded-3xl p-8 flex flex-col items-center text-blue-900 animate-in fade-in">
                   <div class="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-200">
                     <i class="fa-solid fa-check text-2xl"></i>
@@ -747,7 +856,7 @@
           </div>
         `;
 
-        if (!hasAte) {
+        if (isStudyDay && !hasAte) {
           startQrTimer();
         }
       }
