@@ -16,7 +16,7 @@
       import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
       import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-      // 선생님의 파이어베이스 고유 키
+      // 🔥 선생님의 실제 파이어베이스 키 적용 완료 🔥
       const firebaseConfig = {
         apiKey: "AIzaSyD1QMc6FSNZxF4zu--dkcniXkXMLtzN5DA",
         authDomain: "smartmealpass-2e138.firebaseapp.com",
@@ -53,9 +53,8 @@
       <span id="toast-msg"></span>
     </div>
 
-    <!-- 메인 앱 컨테이너 (컴퓨터/태블릿은 와이드 반응형, 모바일은 꽉 찬 화면) -->
+    <!-- 메인 앱 컨테이너 -->
     <div id="app" class="w-full max-w-full md:max-w-6xl min-h-screen flex flex-col bg-white md:bg-transparent shadow-sm md:shadow-none md:p-6">
-      <!-- 초기 로딩 화면 -->
       <div id="loading-screen" class="flex-1 flex flex-col items-center justify-center p-8 space-y-4 bg-white rounded-3xl md:shadow-sm">
         <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
         <p class="text-gray-500 font-bold text-sm">클라우드 서버 연결 중...</p>
@@ -69,6 +68,7 @@
       let unsubscribeUsers = null;
       let unsubscribeAttendance = null;
 
+      // 오늘 날짜 및 요일 구하기
       const getTodayStr = () => {
         const d = new Date();
         const year = d.getFullYear();
@@ -76,26 +76,26 @@
         const day = String(d.getDate()).padStart(2, '0');
         return `${year}${month}${day}`;
       };
+      const getTodayDayOfWeek = () => new Date().getDay(); // 0:일, 1:월, 2:화, 3:수, 4:목, 5:금, 6:토
 
-      const getTodayDayOfWeek = () => {
-        return new Date().getDay(); // 0:일, 1:월, 2:화, 3:수, 4:목, 5:금, 6:토
-      };
-
+      // Firebase 초기화 후 실행되는 로직
       window.addEventListener('firebase-ready', async () => {
         const { auth, db, firebaseModules } = window;
         const { collection, onSnapshot } = firebaseModules;
 
         try {
-          await signInAnonymously(auth); // 익명 로그인 권한 획득
+          await signInAnonymously(auth);
         } catch (e) {
           console.error("Auth error:", e);
         }
 
-        // 1. 학생 데이터 실시간 동기화
         const usersRef = collection(db, 'artifacts', 'smart_meal_pass_v1', 'public', 'data', 'meal_users');
         unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
           allUsers = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
           if (currentUser) {
+            // 정보 수정/비밀번호 변경 시 currentUser 데이터 동기화
+            const updatedUser = allUsers.find(u => u.id === currentUser.id);
+            if(updatedUser) currentUser = updatedUser;
             renderApp();
           } else {
             renderLogin();
@@ -105,7 +105,6 @@
           renderLogin();
         });
 
-        // 2. 오늘 출석(식사) 데이터 실시간 동기화
         const todayStr = getTodayStr();
         const attRef = collection(db, 'artifacts', 'smart_meal_pass_v1', 'public', 'data', `meal_attendance_${todayStr}`);
         unsubscribeAttendance = onSnapshot(attRef, (snapshot) => {
@@ -164,7 +163,6 @@
           const id = document.getElementById('login-id').value.trim();
           const pw = document.getElementById('login-pw').value.trim();
 
-          // 관리자 로그인 체크
           if (id === 'ysj0518' && pw === 'ysj0518!') {
             currentUser = { role: 'admin', name: '관리자 선생님', id: 'ysj0518' };
             renderApp();
@@ -172,7 +170,6 @@
             return;
           }
 
-          // 학생 로그인 체크
           const student = allUsers.find(u => u.role === 'student' && u.id === id && u.password === pw);
           if (student) {
             currentUser = student;
@@ -193,14 +190,16 @@
         }
       }
 
+      // ----------------------------------------------------
+      // 관리자 대시보드
+      // ----------------------------------------------------
       function renderAdminDashboard() {
         window.activeAdminTab = window.activeAdminTab || 'scanner';
-        window.statViewMode = window.statViewMode || 'ate'; // 통계 보기 모드: 'target', 'ate', 'notAte'
+        window.statViewMode = window.statViewMode || 'ate'; 
 
         const appEl = document.getElementById('app');
         appEl.innerHTML = `
           <div class="min-h-screen bg-white md:bg-white md:rounded-[2rem] md:shadow-xl md:border md:border-gray-100 flex flex-col overflow-hidden mb-8">
-            <!-- 상단 헤더 -->
             <header class="bg-white px-6 py-4 border-b border-gray-100 flex justify-between items-center sticky top-0 z-20">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 font-bold">
@@ -216,7 +215,6 @@
               </button>
             </header>
 
-            <!-- 탭 네비게이션 -->
             <div class="p-4 bg-gray-50/50 border-b border-gray-100 flex gap-2 overflow-x-auto hide-scrollbar md:px-6">
               <button onclick="switchAdminTab('scanner')" class="admin-tab-btn px-5 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition whitespace-nowrap ${window.activeAdminTab === 'scanner' ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200/60'}">
                 <i class="fa-solid fa-qrcode"></i> QR 스캐너
@@ -229,10 +227,8 @@
               </button>
             </div>
 
-            <!-- 컨텐츠 영역 -->
             <div class="flex-1 p-4 sm:p-6 md:p-8 max-w-5xl mx-auto w-full">
-              
-              <!-- QR 스캐너 탭 -->
+              <!-- 스캐너 탭 -->
               <div id="tab-scanner" class="admin-tab-content ${window.activeAdminTab === 'scanner' ? '' : 'hidden'} grid md:grid-cols-2 gap-6 items-start">
                 <div class="bg-gray-50/60 p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center">
                   <div id="scanner-view-container" class="w-full flex flex-col items-center">
@@ -262,98 +258,80 @@
                     </div>
                   </div>
                 </div>
-
-                <div class="bg-gray-50/60 p-6 rounded-3xl shadow-sm border border-gray-100">
-                  <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">수동 입력 테스트</h3>
-                  <div class="flex gap-2">
-                    <input type="text" id="manual-scan-input" placeholder="스캔용 텍스트 입력" class="flex-1 px-4 py-3 bg-white rounded-xl border border-gray-200 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button id="manual-scan-submit" class="px-5 py-3 bg-gray-800 hover:bg-gray-900 text-white font-bold rounded-xl text-sm">확인</button>
-                  </div>
-                </div>
               </div>
 
               <!-- 학생 관리 탭 -->
               <div id="tab-students" class="admin-tab-content ${window.activeAdminTab === 'students' ? '' : 'hidden'} grid md:grid-cols-2 gap-6 items-start">
-                <!-- 학생 등록 폼 -->
                 <div class="bg-gray-50/60 p-6 rounded-3xl shadow-sm border border-gray-100">
+                  
                   <h2 class="font-extrabold text-gray-900 mb-4 flex items-center gap-2">
-                    <i class="fa-solid fa-user-plus text-blue-600"></i> 신규 학생 등록
+                    <i class="fa-solid fa-user-plus text-blue-600"></i> 개별 학생 등록
                   </h2>
                   <form id="add-student-form" class="space-y-4">
                     <div class="grid grid-cols-2 gap-3">
                       <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">학번</label>
-                        <input type="text" id="new-id" placeholder="예: 30101" class="w-full px-4 py-3 bg-white rounded-xl border border-gray-200 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" required />
+                        <input type="text" id="new-id" placeholder="학번 (예: 30101)" class="w-full px-4 py-3 bg-white rounded-xl border border-gray-200 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" required />
                       </div>
                       <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">이름</label>
-                        <input type="text" id="new-name" placeholder="홍길동" class="w-full px-4 py-3 bg-white rounded-xl border border-gray-200 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" required />
+                        <input type="text" id="new-name" placeholder="이름" class="w-full px-4 py-3 bg-white rounded-xl border border-gray-200 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" required />
                       </div>
                     </div>
                     <div>
-                      <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">비밀번호</label>
                       <input type="password" id="new-pw" placeholder="비밀번호 설정" class="w-full px-4 py-3 bg-white rounded-xl border border-gray-200 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" required />
                     </div>
-                    
-                    <!-- 요일별 자습 설정 체크박스 (월, 화, 수, 목) -->
                     <div class="pt-1">
-                      <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">자습(석식) 요일 선택 (월~목)</label>
+                      <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">자습 요일 선택 (월~목)</label>
                       <div class="grid grid-cols-4 gap-2">
                         <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-xs cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
-                          <input type="checkbox" name="study-day" value="1" class="hidden" checked /> 월요일
+                          <input type="checkbox" name="study-day" value="1" class="hidden" checked /> 월
                         </label>
                         <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-xs cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
-                          <input type="checkbox" name="study-day" value="2" class="hidden" checked /> 화요일
+                          <input type="checkbox" name="study-day" value="2" class="hidden" checked /> 화
                         </label>
                         <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-xs cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
-                          <input type="checkbox" name="study-day" value="3" class="hidden" checked /> 수요일
+                          <input type="checkbox" name="study-day" value="3" class="hidden" checked /> 수
                         </label>
                         <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-xs cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
-                          <input type="checkbox" name="study-day" value="4" class="hidden" checked /> 목요일
+                          <input type="checkbox" name="study-day" value="4" class="hidden" checked /> 목
                         </label>
                       </div>
                     </div>
-
-                    <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 transition mt-2">
-                      학생 등록하기
-                    </button>
+                    <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md transition">개별 등록하기</button>
                   </form>
+
+                  <!-- 엑셀 일괄 등록 폼 추가 -->
+                  <div class="mt-8 border-t border-gray-200 pt-6">
+                    <h2 class="font-extrabold text-gray-900 mb-2 flex items-center gap-2">
+                      <i class="fa-solid fa-file-excel text-green-600"></i> 엑셀 일괄 등록
+                    </h2>
+                    <p class="text-xs text-gray-500 font-semibold mb-3">엑셀에서 학번과 이름 열을 드래그하여 복사한 뒤 아래에 붙여넣으세요.<br/>(초기 비밀번호 '0000', 자습일 '월화수목' 자동 적용)</p>
+                    <textarea id="bulk-input" class="w-full h-32 p-3 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-green-500" placeholder="예시:&#10;30101 홍길동&#10;30102 김철수"></textarea>
+                    <button onclick="handleBulkAdd()" class="w-full mt-2 py-3.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-md transition">일괄 등록 실행</button>
+                  </div>
+
                 </div>
 
                 <!-- 등록된 학생 명단 -->
                 <div class="bg-gray-50/60 p-6 rounded-3xl shadow-sm border border-gray-100">
                   <h2 class="font-extrabold text-gray-900 mb-4">등록된 학생 명단 (<span id="student-count">0</span>명)</h2>
-                  <div id="student-list-container" class="space-y-2.5 max-h-[420px] overflow-y-auto pr-1"></div>
+                  <div id="student-list-container" class="space-y-2.5 max-h-[550px] overflow-y-auto pr-1"></div>
                 </div>
               </div>
 
               <!-- 급식 현황 탭 -->
               <div id="tab-stats" class="admin-tab-content ${window.activeAdminTab === 'stats' ? '' : 'hidden'} space-y-6">
                 <div class="grid grid-cols-3 gap-3 md:gap-4">
-                  <!-- 오늘 자습 대상 카드 (클릭 가능) -->
-                  <div id="card-target" class="p-5 md:p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition border border-gray-100 shadow-sm ${window.statViewMode === 'target' ? 'bg-indigo-600 text-white ring-2 ring-indigo-600 shadow-indigo-200' : 'bg-gray-50/60 text-gray-800 hover:bg-gray-100'}">
+                  <div id="card-target" class="p-5 md:p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition border border-gray-100 shadow-sm">
                     <p class="text-xs font-bold opacity-75 mb-1">오늘 자습대상</p>
                     <p class="text-2xl md:text-3xl font-extrabold"><span id="stat-target-count">0</span><span class="text-sm font-medium ml-0.5">명</span></p>
                   </div>
-                  <!-- 식사 완료 카드 (클릭 가능) -->
-                  <div id="card-ate" class="p-5 md:p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition border border-gray-100 shadow-sm ${window.statViewMode === 'ate' ? 'bg-blue-600 text-white ring-2 ring-blue-600 shadow-blue-200' : 'bg-gray-50/60 text-gray-800 hover:bg-gray-100'}">
+                  <div id="card-ate" class="p-5 md:p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition border border-gray-100 shadow-sm">
                     <p class="text-xs font-bold opacity-75 mb-1">식사 완료</p>
                     <p class="text-2xl md:text-3xl font-extrabold"><span id="stat-ate-count">0</span><span class="text-sm font-medium ml-0.5">명</span></p>
                   </div>
-                  <!-- 미식사 카드 (클릭 가능) -->
-                  <div id="card-not-ate" class="p-5 md:p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition border border-gray-100 shadow-sm ${window.statViewMode === 'notAte' ? 'bg-gray-900 text-white ring-2 ring-gray-900 shadow-gray-200' : 'bg-gray-50/60 text-gray-800 hover:bg-gray-100'}">
+                  <div id="card-not-ate" class="p-5 md:p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition border border-gray-100 shadow-sm">
                     <p class="text-xs font-bold opacity-75 mb-1">미식사</p>
                     <p class="text-2xl md:text-3xl font-extrabold"><span id="stat-notate-count">0</span><span class="text-sm font-medium ml-0.5">명</span></p>
-                  </div>
-                </div>
-
-                <div class="bg-gray-50/60 p-6 rounded-3xl shadow-sm border border-gray-100">
-                  <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">오늘 석식 달성률</span>
-                    <span id="stat-percent" class="text-sm font-extrabold text-blue-600">0%</span>
-                  </div>
-                  <div class="w-full bg-gray-200/80 h-3 rounded-full overflow-hidden">
-                    <div id="stat-progress" class="bg-blue-600 h-full transition-all duration-500 rounded-full" style="width: 0%"></div>
                   </div>
                 </div>
 
@@ -365,7 +343,7 @@
             </div>
           </div>
 
-          <!-- 학생 정보 수정 모달 (숨김 처리 기본) -->
+          <!-- 학생 정보 수정 모달 -->
           <div id="edit-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
             <div class="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95">
               <div class="flex justify-between items-center mb-6">
@@ -389,19 +367,19 @@
                   <input type="text" id="edit-pw" class="w-full px-4 py-3 bg-white rounded-xl border border-gray-200 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" required />
                 </div>
                 <div>
-                  <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">자습(석식) 요일 수정 (월~목)</label>
+                  <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">자습 요일 수정 (월~목)</label>
                   <div class="grid grid-cols-4 gap-2">
                     <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-xs cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
-                      <input type="checkbox" name="edit-study-day" value="1" class="hidden" /> 월요일
+                      <input type="checkbox" name="edit-study-day" value="1" class="hidden" /> 월
                     </label>
                     <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-xs cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
-                      <input type="checkbox" name="edit-study-day" value="2" class="hidden" /> 화요일
+                      <input type="checkbox" name="edit-study-day" value="2" class="hidden" /> 화
                     </label>
                     <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-xs cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
-                      <input type="checkbox" name="edit-study-day" value="3" class="hidden" /> 수요일
+                      <input type="checkbox" name="edit-study-day" value="3" class="hidden" /> 수
                     </label>
                     <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-xs cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
-                      <input type="checkbox" name="edit-study-day" value="4" class="hidden" /> 목요일
+                      <input type="checkbox" name="edit-study-day" value="4" class="hidden" /> 목
                     </label>
                   </div>
                 </div>
@@ -430,7 +408,7 @@
           showToast('로그아웃 되었습니다.');
         });
 
-        // 1. 신규 학생 등록 이벤트
+        // 1. 신규 학생 등록
         const addForm = document.getElementById('add-student-form');
         if (addForm) {
           addForm.addEventListener('submit', async (e) => {
@@ -438,13 +416,10 @@
             const id = document.getElementById('new-id').value.trim();
             const name = document.getElementById('new-name').value.trim();
             const password = document.getElementById('new-pw').value.trim();
-            
-            // 체크된 요일 값 가져오기
             const checkedDays = Array.from(document.querySelectorAll('input[name="study-day"]:checked')).map(el => parseInt(el.value));
 
             if (allUsers.some(u => u.id === id)) {
-              showToast('이미 등록된 학번입니다.', 'error');
-              return;
+              showToast('이미 등록된 학번입니다.', 'error'); return;
             }
 
             try {
@@ -455,13 +430,12 @@
               showToast('학생이 성공적으로 등록되었습니다.');
               addForm.reset();
             } catch (err) {
-              showToast('학생 등록에 실패했습니다.', 'error');
-              console.error(err);
+              showToast('등록 실패', 'error');
             }
           });
         }
 
-        // 2. 학생 정보 수정(모달) 저장 이벤트
+        // 2. 학생 정보 수정 저장
         const editForm = document.getElementById('edit-student-form');
         if (editForm) {
           editForm.addEventListener('submit', async (e) => {
@@ -480,187 +454,79 @@
               closeEditModal();
             } catch (err) {
               showToast('수정 실패', 'error');
-              console.error(err);
             }
           });
         }
 
-        // 3. 통계 카드 클릭 이벤트 (탭 전환 효과)
+        // 3. 통계 카드 탭
         const cardTarget = document.getElementById('card-target');
         const cardAte = document.getElementById('card-ate');
         const cardNotAte = document.getElementById('card-not-ate');
-
         if (cardTarget) cardTarget.addEventListener('click', () => { window.statViewMode = 'target'; updateAdminStatsAndLists(); });
         if (cardAte) cardAte.addEventListener('click', () => { window.statViewMode = 'ate'; updateAdminStatsAndLists(); });
         if (cardNotAte) cardNotAte.addEventListener('click', () => { window.statViewMode = 'notAte'; updateAdminStatsAndLists(); });
 
-        // 4. 카메라 스캔 버튼
+        // 4. 스캐너 토글
         const toggleCamBtn = document.getElementById('toggle-cam-btn');
         if (toggleCamBtn) {
           toggleCamBtn.addEventListener('click', () => {
-            if (window.isScanning) {
-              stopCamera();
-            } else {
-              startCamera();
-            }
-          });
-        }
-
-        // 5. 수동 입력(테스트) 버튼
-        const manualBtn = document.getElementById('manual-scan-submit');
-        if (manualBtn) {
-          manualBtn.addEventListener('click', () => {
-            const val = document.getElementById('manual-scan-input').value.trim();
-            if (val) processScanData(val);
+            if (window.isScanning) stopCamera();
+            else startCamera();
           });
         }
       }
 
+      // 엑셀 일괄 등록 함수 (붙여넣기 텍스트 분석)
+      window.handleBulkAdd = async function() {
+        const text = document.getElementById('bulk-input').value.trim();
+        if (!text) {
+          showToast('입력된 내용이 없습니다.', 'error'); return;
+        }
+
+        const lines = text.split('\n');
+        let addedCount = 0;
+        const { db, firebaseModules } = window;
+        const { collection, addDoc } = firebaseModules;
+        const usersRef = collection(db, 'artifacts', 'smart_meal_pass_v1', 'public', 'data', 'meal_users');
+
+        for (let line of lines) {
+          // 공백이나 탭을 기준으로 학번, 이름 분리
+          const parts = line.trim().split(/[\t ]+/);
+          if (parts.length >= 2) {
+            const id = parts[0];
+            const name = parts[1];
+            
+            // 중복 방지
+            if (!allUsers.some(u => u.id === id)) {
+              try {
+                // 초기 비밀번호 0000, 월화수목(1,2,3,4) 자습 자동 세팅
+                await addDoc(usersRef, { id, name, password: '0000', role: 'student', studyDays: [1, 2, 3, 4] });
+                addedCount++;
+              } catch (e) {
+                console.error("Bulk add error:", e);
+              }
+            }
+          }
+        }
+        showToast(`${addedCount}명의 학생이 일괄 등록되었습니다.`);
+        document.getElementById('bulk-input').value = '';
+      };
+
       window.openEditModal = function(docId) {
         const student = allUsers.find(u => u.docId === docId);
         if (!student) return;
-
         document.getElementById('edit-doc-id').value = student.docId;
         document.getElementById('edit-id').value = student.id;
         document.getElementById('edit-name').value = student.name;
         document.getElementById('edit-pw').value = student.password;
 
-        // 기존 요일 체크박스 상태 갱신
         const dayCheckboxes = document.querySelectorAll('input[name="edit-study-day"]');
         dayCheckboxes.forEach(cb => {
           cb.checked = (student.studyDays || []).includes(parseInt(cb.value));
         });
-
         document.getElementById('edit-modal').classList.remove('hidden');
       };
-
-      window.closeEditModal = function() {
-        document.getElementById('edit-modal').classList.add('hidden');
-      };
-
-      function updateAdminStatsAndLists() {
-        const students = allUsers.filter(u => u.role === 'student');
-        
-        // 전체 학생수 갱신
-        const studentCountEl = document.getElementById('student-count');
-        if (studentCountEl) studentCountEl.textContent = students.length;
-
-        // 오늘의 요일을 기준으로 '오늘 자습 대상 학생' 분류
-        const dayOfWeek = getTodayDayOfWeek();
-        const targetStudents = students.filter(s => s.studyDays && s.studyDays.includes(dayOfWeek));
-        
-        const ateCount = todayAttendance.length;
-        const targetCount = targetStudents.length;
-        
-        // 미식사 학생 = 오늘 자습 대상 학생 중 출석 데이터에 없는 학생
-        const notAteTargetStudents = targetStudents.filter(s => !todayAttendance.some(a => a.studentId === s.id));
-        const notAteCount = notAteTargetStudents.length;
-
-        // 통계 숫자 UI 반영
-        const statTargetCount = document.getElementById('stat-target-count');
-        const statAteCount = document.getElementById('stat-ate-count');
-        const statNotateCount = document.getElementById('stat-notate-count');
-        if (statTargetCount) statTargetCount.textContent = targetCount;
-        if (statAteCount) statAteCount.textContent = ateCount;
-        if (statNotateCount) statNotateCount.textContent = notAteCount;
-
-        // 달성률 바 업데이트
-        const percent = targetCount === 0 ? 0 : Math.min(100, Math.round((ateCount / targetCount) * 100));
-        const statPercent = document.getElementById('stat-percent');
-        const statProgress = document.getElementById('stat-progress');
-        if (statPercent) statPercent.textContent = percent + '%';
-        if (statProgress) statProgress.style.width = percent + '%';
-
-        // 선택된 탭 스타일 하이라이팅
-        const cTarget = document.getElementById('card-target');
-        const cAte = document.getElementById('card-ate');
-        const cNotAte = document.getElementById('card-not-ate');
-        if (cTarget && cAte && cNotAte) {
-          cTarget.className = `p-5 md:p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition border border-gray-100 shadow-sm ${window.statViewMode === 'target' ? 'bg-indigo-600 text-white ring-2 ring-indigo-600 shadow-indigo-200' : 'bg-gray-50/60 text-gray-800 hover:bg-gray-100'}`;
-          cAte.className = `p-5 md:p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition border border-gray-100 shadow-sm ${window.statViewMode === 'ate' ? 'bg-blue-600 text-white ring-2 ring-blue-600 shadow-blue-200' : 'bg-gray-50/60 text-gray-800 hover:bg-gray-100'}`;
-          cNotAte.className = `p-5 md:p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition border border-gray-100 shadow-sm ${window.statViewMode === 'notAte' ? 'bg-gray-900 text-white ring-2 ring-gray-900 shadow-gray-200' : 'bg-gray-50/60 text-gray-800 hover:bg-gray-100'}`;
-        }
-
-        // 1. [학생 관리 탭] 전체 등록 학생 명단 렌더링 (수정/삭제 기능 포함)
-        const studentListEl = document.getElementById('student-list-container');
-        if (studentListEl) {
-          if (students.length === 0) {
-            studentListEl.innerHTML = `<p class="text-xs font-bold text-gray-400 text-center py-6">등록된 학생이 없습니다.</p>`;
-          } else {
-            studentListEl.innerHTML = students.map(s => `
-              <div class="flex justify-between items-center p-3.5 bg-white rounded-2xl border border-gray-100">
-                <div>
-                  <p class="font-extrabold text-sm text-gray-900">${s.name} <span class="text-xs font-medium text-gray-400 ml-1">(${s.id})</span></p>
-                  <p class="text-[11px] font-semibold text-blue-600 mt-0.5">자습요일: ${(s.studyDays || []).map(d => ['', '월','화','수','목','금','토','일'][d]).join(', ') || '없음'}</p>
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <button onclick="openEditModal('${s.docId}')" class="w-8 h-8 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 hover:text-blue-600 hover:border-blue-200 flex items-center justify-center transition" title="수정">
-                    <i class="fa-solid fa-pen text-xs"></i>
-                  </button>
-                  <button onclick="deleteStudent('${s.docId}')" class="w-8 h-8 rounded-xl bg-gray-50 border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200 flex items-center justify-center transition" title="삭제">
-                    <i class="fa-solid fa-trash-can text-xs"></i>
-                  </button>
-                </div>
-              </div>
-            `).join('');
-          }
-        }
-
-        // 2. [급식 현황 탭] 하단 통계 세부 명단 렌더링
-        const listTitleEl = document.getElementById('stat-list-title');
-        const listContainerEl = document.getElementById('stat-list-container');
-        if (listTitleEl && listContainerEl) {
-          if (window.statViewMode === 'target') {
-            // [오늘 자습 대상 학생] 리스트 표시
-            listTitleEl.innerHTML = `<i class="fa-solid fa-list-check text-indigo-600 mr-1.5"></i> 오늘 자습 대상 학생 명단 (${targetCount}명)`;
-            if (targetStudents.length === 0) {
-              listContainerEl.innerHTML = `<p class="text-xs font-bold text-gray-400 py-4 w-full text-center">오늘(주말 또는 요일 해당 없음) 자습 예정인 학생이 없습니다.</p>`;
-            } else {
-              listContainerEl.innerHTML = targetStudents.map(s => {
-                const hasAte = todayAttendance.some(a => a.studentId === s.id);
-                // 밥을 먹은 사람은 파란색 배지, 안 먹은 사람은 회색 배지
-                return `
-                  <span class="px-3.5 py-2 rounded-xl text-xs font-bold border flex items-center gap-2 ${hasAte ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-white text-gray-700 border-gray-200 shadow-sm'}">
-                    <span class="w-2 h-2 rounded-full ${hasAte ? 'bg-blue-600' : 'bg-gray-300'}"></span>
-                    ${s.name} (${s.id})
-                  </span>
-                `;
-              }).join('');
-            }
-          } else if (window.statViewMode === 'ate') {
-            // [식사 완료 학생] 리스트 표시
-            listTitleEl.innerHTML = `<i class="fa-solid fa-circle-check text-blue-600 mr-1.5"></i> 식사 완료 학생 명단 (${ateCount}명)`;
-            if (todayAttendance.length === 0) {
-              listContainerEl.innerHTML = `<p class="text-xs font-bold text-gray-400 py-4 w-full text-center">아직 식사한 학생이 없습니다.</p>`;
-            } else {
-              listContainerEl.innerHTML = todayAttendance.map(a => {
-                const s = students.find(st => st.id === a.studentId);
-                if (!s) return '';
-                return `
-                  <span class="px-3.5 py-2 bg-blue-50 text-blue-800 border border-blue-200 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm">
-                    ${s.name} (${s.id})
-                    <button onclick="cancelAttendance('${a.docId}')" class="text-blue-400 hover:text-red-500 ml-1"><i class="fa-solid fa-xmark"></i></button>
-                  </span>
-                `;
-              }).join('');
-            }
-          } else {
-            // [미식사 학생] 리스트 표시
-            listTitleEl.innerHTML = `<i class="fa-solid fa-user-clock text-gray-800 mr-1.5"></i> 미식사 학생 명단 (${notAteCount}명)`;
-            if (notAteTargetStudents.length === 0) {
-              listContainerEl.innerHTML = `<p class="text-xs font-bold text-green-600 py-4 w-full text-center">오늘 자습 대상자가 모두 식사를 완료했습니다! 🎉</p>`;
-            } else {
-              listContainerEl.innerHTML = notAteTargetStudents.map(s => `
-                <span class="px-3.5 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm">
-                  <span class="w-2 h-2 rounded-full bg-gray-300"></span>
-                  ${s.name} (${s.id})
-                </span>
-              `).join('');
-            }
-          }
-        }
-      }
-
+      window.closeEditModal = function() { document.getElementById('edit-modal').classList.add('hidden'); };
       window.deleteStudent = async function(docId) {
         if (!confirm('정말 이 학생 정보를 삭제하시겠습니까?')) return;
         try {
@@ -668,180 +534,206 @@
           const { doc, deleteDoc } = firebaseModules;
           await deleteDoc(doc(db, 'artifacts', 'smart_meal_pass_v1', 'public', 'data', 'meal_users', docId));
           showToast('학생 정보가 삭제되었습니다.');
-        } catch (err) {
-          showToast('삭제 실패', 'error');
-        }
+        } catch (err) { showToast('삭제 실패', 'error'); }
       };
-
       window.cancelAttendance = async function(docId) {
         try {
           const { db, firebaseModules } = window;
           const { doc, deleteDoc } = firebaseModules;
           const todayStr = getTodayStr();
           await deleteDoc(doc(db, 'artifacts', 'smart_meal_pass_v1', 'public', 'data', `meal_attendance_${todayStr}`, docId));
-          showToast('식사 기록이 취소되었습니다.');
-        } catch (err) {
-          showToast('취소 실패', 'error');
-        }
+          showToast('식사 기록 취소 완료');
+        } catch (err) { showToast('취소 실패', 'error'); }
       };
 
+      function updateAdminStatsAndLists() {
+        const students = allUsers.filter(u => u.role === 'student');
+        if(document.getElementById('student-count')) document.getElementById('student-count').textContent = students.length;
+
+        // 오늘 요일 기준 자습 대상 분류
+        const dayOfWeek = getTodayDayOfWeek();
+        const targetStudents = students.filter(s => s.studyDays && s.studyDays.includes(dayOfWeek));
+        
+        const ateCount = todayAttendance.length;
+        const targetCount = targetStudents.length;
+        const notAteTargetStudents = targetStudents.filter(s => !todayAttendance.some(a => a.studentId === s.id));
+        const notAteCount = notAteTargetStudents.length;
+
+        if (document.getElementById('stat-target-count')) document.getElementById('stat-target-count').textContent = targetCount;
+        if (document.getElementById('stat-ate-count')) document.getElementById('stat-ate-count').textContent = ateCount;
+        if (document.getElementById('stat-notate-count')) document.getElementById('stat-notate-count').textContent = notAteCount;
+
+        // 탭 스타일링
+        const cTarget = document.getElementById('card-target');
+        const cAte = document.getElementById('card-ate');
+        const cNotAte = document.getElementById('card-not-ate');
+        if (cTarget && cAte && cNotAte) {
+          cTarget.className = `p-5 md:p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition border shadow-sm ${window.statViewMode === 'target' ? 'bg-indigo-600 text-white border-indigo-600 shadow-indigo-200 ring-2 ring-indigo-600' : 'bg-gray-50/60 text-gray-800 border-gray-100 hover:bg-gray-100'}`;
+          cAte.className = `p-5 md:p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition border shadow-sm ${window.statViewMode === 'ate' ? 'bg-blue-600 text-white border-blue-600 shadow-blue-200 ring-2 ring-blue-600' : 'bg-gray-50/60 text-gray-800 border-gray-100 hover:bg-gray-100'}`;
+          cNotAte.className = `p-5 md:p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition border shadow-sm ${window.statViewMode === 'notAte' ? 'bg-gray-900 text-white border-gray-900 shadow-gray-200 ring-2 ring-gray-900' : 'bg-gray-50/60 text-gray-800 border-gray-100 hover:bg-gray-100'}`;
+        }
+
+        // 전체 학생 명단
+        const studentListEl = document.getElementById('student-list-container');
+        if (studentListEl) {
+          studentListEl.innerHTML = students.length === 0 ? `<p class="text-xs font-bold text-gray-400 text-center py-6">등록된 학생이 없습니다.</p>` : 
+            students.map(s => `
+              <div class="flex justify-between items-center p-3.5 bg-white rounded-2xl border border-gray-100">
+                <div>
+                  <p class="font-extrabold text-sm text-gray-900">${s.name} <span class="text-xs font-medium text-gray-400 ml-1">(${s.id})</span></p>
+                  <p class="text-[11px] font-semibold text-blue-600 mt-0.5">자습: ${(s.studyDays || []).map(d => ['', '월','화','수','목','금','토','일'][d]).join(', ') || '없음'}</p>
+                </div>
+                <div class="flex gap-1.5">
+                  <button onclick="openEditModal('${s.docId}')" class="w-8 h-8 rounded-xl bg-gray-50 text-gray-500 hover:text-blue-600 transition"><i class="fa-solid fa-pen text-xs"></i></button>
+                  <button onclick="deleteStudent('${s.docId}')" class="w-8 h-8 rounded-xl bg-gray-50 text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                </div>
+              </div>
+            `).join('');
+        }
+
+        // 통계 명단
+        const listTitleEl = document.getElementById('stat-list-title');
+        const listContainerEl = document.getElementById('stat-list-container');
+        if (listTitleEl && listContainerEl) {
+          if (window.statViewMode === 'target') {
+            listTitleEl.innerHTML = `<i class="fa-solid fa-list-check text-indigo-600 mr-1.5"></i> 오늘 자습 대상 명단 (${targetCount}명)`;
+            listContainerEl.innerHTML = targetStudents.length === 0 ? `<p class="text-xs font-bold text-gray-400 w-full text-center">오늘 자습 예정인 학생이 없습니다.</p>` :
+              targetStudents.map(s => {
+                const hasAte = todayAttendance.some(a => a.studentId === s.id);
+                return `<span class="px-3.5 py-2 rounded-xl text-xs font-bold border flex items-center gap-2 ${hasAte ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-white text-gray-700 border-gray-200'}">
+                  <span class="w-2 h-2 rounded-full ${hasAte ? 'bg-blue-600' : 'bg-gray-300'}"></span>${s.name} (${s.id})
+                </span>`;
+              }).join('');
+          } else if (window.statViewMode === 'ate') {
+            listTitleEl.innerHTML = `<i class="fa-solid fa-circle-check text-blue-600 mr-1.5"></i> 식사 완료 명단 (${ateCount}명)`;
+            listContainerEl.innerHTML = todayAttendance.length === 0 ? `<p class="text-xs font-bold text-gray-400 w-full text-center">식사한 학생이 없습니다.</p>` :
+              todayAttendance.map(a => {
+                const s = students.find(st => st.id === a.studentId);
+                if (!s) return '';
+                return `<span class="px-3.5 py-2 bg-blue-50 text-blue-800 border border-blue-200 rounded-xl text-xs font-bold flex items-center gap-2">
+                  ${s.name} (${s.id})<button onclick="cancelAttendance('${a.docId}')" class="text-blue-400 hover:text-red-500 ml-1"><i class="fa-solid fa-xmark"></i></button>
+                </span>`;
+              }).join('');
+          } else {
+            listTitleEl.innerHTML = `<i class="fa-solid fa-user-clock text-gray-800 mr-1.5"></i> 미식사 명단 (${notAteCount}명)`;
+            listContainerEl.innerHTML = notAteTargetStudents.length === 0 ? `<p class="text-xs font-bold text-green-600 w-full text-center">대상자가 모두 식사를 완료했습니다! 🎉</p>` :
+              notAteTargetStudents.map(s => `<span class="px-3.5 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl text-xs font-bold flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-gray-300"></span>${s.name} (${s.id})</span>`).join('');
+          }
+        }
+      }
+
+      // 스캐너 로직
       let videoStream = null;
       window.isScanning = false;
       let pendingStudentObj = null;
 
       function startCamera() {
         const video = document.getElementById('qr-video');
-        const box = document.getElementById('camera-box');
-        const placeholder = document.getElementById('camera-placeholder');
-        const btn = document.getElementById('toggle-cam-btn');
-
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-          .then(stream => {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(stream => {
             videoStream = stream;
             video.srcObject = stream;
-            video.setAttribute("playsinline", true);
             video.play();
-            box.classList.remove('hidden');
-            placeholder.classList.add('hidden');
+            document.getElementById('camera-box').classList.remove('hidden');
+            document.getElementById('camera-placeholder').classList.add('hidden');
+            const btn = document.getElementById('toggle-cam-btn');
             btn.textContent = '카메라 끄기';
             btn.className = "w-full py-4 bg-red-50 hover:bg-red-100 text-red-600 font-extrabold rounded-2xl transition border border-red-200";
             window.isScanning = true;
             requestAnimationFrame(scanTick);
-          })
-          .catch(err => {
-            showToast('카메라 권한이 거부되었거나 지원하지 않는 기기입니다.', 'error');
-          });
+          }).catch(err => showToast('카메라 권한이 없거나 지원하지 않습니다.', 'error'));
       }
-
       function stopCamera() {
-        if (videoStream) {
-          videoStream.getTracks().forEach(track => track.stop());
-          videoStream = null;
-        }
+        if (videoStream) { videoStream.getTracks().forEach(track => track.stop()); videoStream = null; }
         window.isScanning = false;
-        const box = document.getElementById('camera-box');
-        const placeholder = document.getElementById('camera-placeholder');
+        if(document.getElementById('camera-box')) document.getElementById('camera-box').classList.add('hidden');
+        if(document.getElementById('camera-placeholder')) document.getElementById('camera-placeholder').classList.remove('hidden');
         const btn = document.getElementById('toggle-cam-btn');
-        if (box) box.classList.add('hidden');
-        if (placeholder) placeholder.classList.remove('hidden');
-        if (btn) {
-          btn.textContent = '카메라 켜기';
-          btn.className = "w-full py-4 bg-gray-900 hover:bg-gray-800 text-white font-extrabold rounded-2xl transition shadow-md";
-        }
+        if(btn) { btn.textContent = '카메라 켜기'; btn.className = "w-full py-4 bg-gray-900 hover:bg-gray-800 text-white font-extrabold rounded-2xl transition shadow-md"; }
       }
-
       function scanTick() {
         if (!window.isScanning) return;
         const video = document.getElementById('qr-video');
         const canvas = document.getElementById('qr-canvas');
         if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
+          canvas.width = video.videoWidth; canvas.height = video.videoHeight;
           const ctx = canvas.getContext('2d', { willReadFrequently: true });
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const code = window.jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "dontInvert" });
-
-          if (code) {
-            processScanData(code.data);
-            return;
-          }
+          if (code) { processScanData(code.data); return; }
         }
         requestAnimationFrame(scanTick);
       }
-
       function processScanData(data) {
         try {
           stopCamera();
-          const decoded = atob(data);
-          const [studentId, timeStr] = decoded.split('|');
+          const [studentId, timeStr] = atob(data).split('|');
           const timeWindow = parseInt(timeStr, 10);
           const currentWindow = Math.floor(Date.now() / 60000);
-
-          if (currentWindow - timeWindow > 2 || currentWindow < timeWindow) {
-            showToast('만료되었거나 유효하지 않은 QR코드입니다.', 'error');
-            return;
-          }
+          if (currentWindow - timeWindow > 2 || currentWindow < timeWindow) { showToast('만료된 QR코드입니다.', 'error'); return; }
 
           const student = allUsers.find(u => u.role === 'student' && u.id === studentId);
-          if (!student) {
-            showToast('등록되지 않은 학생입니다.', 'error');
-            return;
-          }
+          if (!student) { showToast('등록되지 않은 학생입니다.', 'error'); return; }
 
-          if (todayAttendance.some(a => a.studentId === studentId)) {
-            showToast(`이미 식사를 완료한 학생입니다! (${student.name})`, 'error');
-            return;
-          }
+          // 자습 요일 검증
+          const dayOfWeek = getTodayDayOfWeek();
+          if (!(student.studyDays || []).includes(dayOfWeek)) { showToast(`오늘은 ${student.name} 학생의 자습 요일이 아닙니다.`, 'error'); return; }
+          
+          if (todayAttendance.some(a => a.studentId === studentId)) { showToast(`이미 식사한 학생입니다! (${student.name})`, 'error'); return; }
 
           pendingStudentObj = student;
           document.getElementById('scanner-view-container').classList.add('hidden');
-          const pCard = document.getElementById('pending-card');
-          pCard.classList.remove('hidden');
+          document.getElementById('pending-card').classList.remove('hidden');
           document.getElementById('pending-name').textContent = student.name + ' 학생';
           document.getElementById('pending-id').textContent = '학번: ' + student.id;
-
-          document.getElementById('confirm-eat-btn').onclick = confirmMeal;
-          document.getElementById('cancel-eat-btn').onclick = cancelPendingMeal;
-
-        } catch (e) {
-          showToast('올바르지 않은 QR 데이터 형식입니다.', 'error');
-        }
+          document.getElementById('confirm-eat-btn').onclick = async () => {
+            try {
+              const { db, firebaseModules } = window;
+              const { collection, addDoc } = firebaseModules;
+              const todayStr = getTodayStr();
+              await addDoc(collection(db, 'artifacts', 'smart_meal_pass_v1', 'public', 'data', `meal_attendance_${todayStr}`), { studentId: pendingStudentObj.id, timestamp: Date.now() });
+              showToast(`${pendingStudentObj.name} 확인 완료!`);
+              resetPendingCard();
+            } catch (err) { showToast('처리 오류', 'error'); }
+          };
+          document.getElementById('cancel-eat-btn').onclick = resetPendingCard;
+        } catch (e) { showToast('잘못된 QR코드입니다.', 'error'); }
       }
-
-      async function confirmMeal() {
-        if (!pendingStudentObj) return;
-        try {
-          const { db, firebaseModules } = window;
-          const { collection, addDoc } = firebaseModules;
-          const todayStr = getTodayStr();
-          const attRef = collection(db, 'artifacts', 'smart_meal_pass_v1', 'public', 'data', `meal_attendance_${todayStr}`);
-          await addDoc(attRef, { studentId: pendingStudentObj.id, timestamp: Date.now() });
-          
-          showToast(`${pendingStudentObj.name} 식사 완료 처리되었습니다!`);
-          resetPendingCard();
-        } catch (err) {
-          showToast('처리 중 오류가 발생했습니다.', 'error');
-        }
-      }
-
-      function cancelPendingMeal() {
-        resetPendingCard();
-        showToast('취소되었습니다.');
-      }
-
       function resetPendingCard() {
         pendingStudentObj = null;
         document.getElementById('pending-card').classList.add('hidden');
         document.getElementById('scanner-view-container').classList.remove('hidden');
-        document.getElementById('manual-scan-input').value = '';
       }
 
+      // ----------------------------------------------------
+      // 학생 대시보드
+      // ----------------------------------------------------
       function renderStudentDashboard() {
         const appEl = document.getElementById('app');
-        
-        // 해당 학생이 오늘 식사를 완료했는지 확인
         const hasAte = todayAttendance.some(a => a.studentId === currentUser.id);
-
-        // 현재 요일이 학생의 '자습 요일'에 포함되는지 검사
-        const dayOfWeek = getTodayDayOfWeek(); // 0:일, 1:월, 2:화, 3:수, 4:목, 5:금, 6:토
+        const dayOfWeek = getTodayDayOfWeek();
         const isStudyDay = (currentUser.studyDays || []).includes(dayOfWeek);
         const dayNames = ['', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
         const currentDayName = dayNames[dayOfWeek] || '오늘';
 
         appEl.innerHTML = `
-          <div class="min-h-screen md:min-h-[80vh] bg-white md:bg-white md:rounded-[2rem] md:shadow-xl md:border md:border-gray-100 flex flex-col items-center justify-center p-6 mb-8 w-full max-w-md mx-auto">
+          <div class="min-h-screen md:min-h-[80vh] flex flex-col items-center justify-center p-6 bg-white md:bg-transparent mb-8 w-full max-w-md mx-auto">
             <header class="w-full max-w-md flex justify-between items-center mb-6">
               <div>
                 <h1 class="font-extrabold text-gray-900 text-lg">스마트 패스</h1>
                 <p class="text-xs text-gray-400 font-semibold">급식실 모바일 인증</p>
               </div>
-              <button onclick="studentLogout()" class="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-600 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-100 transition">
-                로그아웃
-              </button>
+              <div class="flex items-center">
+                <button onclick="openStudentPwModal()" class="mr-2 px-3 py-2 bg-gray-50 border border-gray-200 text-gray-600 rounded-xl font-bold text-xs shadow-sm hover:bg-gray-100 transition">
+                  <i class="fa-solid fa-key mr-1"></i> 비밀번호 변경
+                </button>
+                <button onclick="studentLogout()" class="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-600 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-100 transition">
+                  로그아웃
+                </button>
+              </div>
             </header>
 
-            <div class="bg-gray-50/60 p-8 rounded-[2.5rem] shadow-sm w-full max-w-md flex flex-col items-center text-center border border-gray-100 relative overflow-hidden">
+            <div class="bg-gray-50/60 p-8 rounded-[2.5rem] shadow-sm w-full max-w-md flex flex-col items-center text-center border border-gray-100">
               <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-blue-600 mb-4 shadow-sm border border-gray-100">
                 <i class="fa-solid fa-user-graduate text-2xl"></i>
               </div>
@@ -849,17 +741,15 @@
               <p class="text-xs font-bold text-gray-400 mb-8">학번: ${currentUser.id}</p>
 
               ${!isStudyDay ? `
-                <!-- 1. 자습일이 아닌 경우: QR 코드를 원천 차단하고 안내문 출력 -->
-                <div class="w-full bg-amber-50 border border-amber-200 rounded-3xl p-8 flex flex-col items-center text-amber-900 animate-in fade-in">
+                <div class="w-full bg-amber-50 border border-amber-200 rounded-3xl p-8 flex flex-col items-center text-amber-900">
                   <div class="w-16 h-16 bg-amber-500 text-white rounded-full flex items-center justify-center mb-4 shadow-lg shadow-amber-200">
                     <i class="fa-solid fa-calendar-xmark text-2xl"></i>
                   </div>
                   <p class="font-extrabold text-lg mb-1">자습 대상 요일이 아닙니다</p>
-                  <p class="text-xs font-semibold text-amber-700 mt-1">오늘은 <span class="underline font-bold">${currentDayName}</span>이며, 설정된 자습 요일이 아닙니다.</p>
+                  <p class="text-xs font-semibold text-amber-700 mt-1">오늘은 <span class="underline font-bold">${currentDayName}</span>입니다.</p>
                 </div>
               ` : hasAte ? `
-                <!-- 2. 식사 완료한 경우: 성공 메시지 출력 -->
-                <div class="w-full bg-blue-50 border border-blue-100 rounded-3xl p-8 flex flex-col items-center text-blue-900 animate-in fade-in">
+                <div class="w-full bg-blue-50 border border-blue-100 rounded-3xl p-8 flex flex-col items-center text-blue-900">
                   <div class="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-200">
                     <i class="fa-solid fa-check text-2xl"></i>
                   </div>
@@ -867,11 +757,9 @@
                   <p class="text-xs font-semibold text-blue-600">맛있게 드세요! 😊</p>
                 </div>
               ` : `
-                <!-- 3. 자습일이고 밥을 안 먹은 경우: 정상적으로 QR 타이머 실행 -->
                 <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 mb-6 ring-4 ring-blue-50">
                   <img id="qr-img" src="" alt="QR" class="w-52 h-52 object-contain rounded-2xl" />
                 </div>
-
                 <div class="w-full">
                   <div class="flex justify-between items-center mb-2">
                     <span class="text-xs font-bold text-gray-400">QR 유효 시간</span>
@@ -881,22 +769,69 @@
                     <div id="qr-progress" class="bg-blue-600 h-full transition-all duration-1000 linear" style="width: 100%"></div>
                   </div>
                 </div>
-                <p class="mt-6 text-[11px] font-semibold text-gray-400 bg-white px-4 py-2.5 rounded-xl w-full border border-gray-100 shadow-sm">
-                  보안을 위해 1분마다 코드가 자동으로 갱신됩니다.
-                </p>
               `}
+            </div>
+          </div>
+
+          <!-- 학생 비밀번호 변경 모달 -->
+          <div id="student-pw-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+            <div class="bg-white rounded-3xl p-6 md:p-8 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in-95">
+              <div class="flex justify-between items-center mb-6">
+                <h3 class="font-extrabold text-lg text-gray-900">비밀번호 변경</h3>
+                <button onclick="closeStudentPwModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center transition">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+              <form onsubmit="changeStudentPassword(event)" class="space-y-4">
+                <div>
+                  <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">현재 비밀번호</label>
+                  <input type="password" id="pw-old" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" required />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">새 비밀번호</label>
+                  <input type="password" id="pw-new" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" required />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">새 비밀번호 확인</label>
+                  <input type="password" id="pw-new-confirm" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" required />
+                </div>
+                <button type="submit" class="w-full mt-2 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition">변경하기</button>
+              </form>
             </div>
           </div>
         `;
 
-        // 요일 규칙을 통과하고, 밥을 아직 안 먹었을 때만 QR 타이머 실행
-        if (isStudyDay && !hasAte) {
-          startQrTimer();
-        }
+        if (isStudyDay && !hasAte) startQrTimer();
       }
 
+      // 학생 비밀번호 변경 로직
+      window.openStudentPwModal = function() {
+        document.getElementById('pw-old').value = ''; document.getElementById('pw-new').value = ''; document.getElementById('pw-new-confirm').value = '';
+        document.getElementById('student-pw-modal').classList.remove('hidden');
+      };
+      window.closeStudentPwModal = function() { document.getElementById('student-pw-modal').classList.add('hidden'); };
+      window.changeStudentPassword = async function(e) {
+        e.preventDefault();
+        const oldPw = document.getElementById('pw-old').value;
+        const newPw = document.getElementById('pw-new').value;
+        const confirmPw = document.getElementById('pw-new-confirm').value;
+
+        if (oldPw !== currentUser.password) { showToast('현재 비밀번호가 맞지 않습니다.', 'error'); return; }
+        if (newPw !== confirmPw) { showToast('새 비밀번호가 서로 일치하지 않습니다.', 'error'); return; }
+
+        try {
+          const { db, firebaseModules } = window;
+          const { doc, updateDoc } = firebaseModules;
+          const userRef = doc(db, 'artifacts', 'smart_meal_pass_v1', 'public', 'data', 'meal_users', currentUser.docId);
+          await updateDoc(userRef, { password: newPw });
+          showToast('비밀번호가 안전하게 변경되었습니다.');
+          currentUser.password = newPw; // 로컬 업데이트
+          closeStudentPwModal();
+        } catch (err) { showToast('비밀번호 변경 실패', 'error'); }
+      };
+
       window.studentLogout = function() {
-        if (qrInterval) clearInterval(qrInterval); // 로그아웃 시 타이머 완전 정지
+        if (qrInterval) clearInterval(qrInterval);
         currentUser = null;
         renderLogin();
         showToast('로그아웃 되었습니다.');
@@ -905,30 +840,16 @@
       let qrInterval = null;
       function startQrTimer() {
         if (qrInterval) clearInterval(qrInterval);
-
         const updateQr = () => {
-          // 보안 장치: 유저가 없거나 이미 밥을 먹은 경우(백그라운드에서 실행 방지)
-          if (!currentUser || todayAttendance.some(a => a.studentId === currentUser.id)) {
-            clearInterval(qrInterval);
-            return;
-          }
-          
-          const currentMinute = Math.floor(Date.now() / 60000);
-          const rawData = `${currentUser.id}|${currentMinute}`;
-          const encoded = btoa(rawData);
-          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(encoded)}&margin=1`;
-          
+          if (!currentUser || todayAttendance.some(a => a.studentId === currentUser.id)) { clearInterval(qrInterval); return; }
+          const encoded = btoa(`${currentUser.id}|${Math.floor(Date.now() / 60000)}`);
           const img = document.getElementById('qr-img');
-          // 이미지가 화면에 있을 때만 소스를 업데이트하여 오류 방지
-          if (img && img.src !== qrUrl) img.src = qrUrl;
-
+          const url = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(encoded)}&margin=1`;
+          if (img && img.src !== url) img.src = url;
           const secLeft = 60 - (new Date().getSeconds());
-          const timerEl = document.getElementById('qr-timer');
-          const progEl = document.getElementById('qr-progress');
-          if (timerEl) timerEl.textContent = secLeft + '초';
-          if (progEl) progEl.style.width = (secLeft / 60) * 100 + '%';
+          if(document.getElementById('qr-timer')) document.getElementById('qr-timer').textContent = secLeft + '초';
+          if(document.getElementById('qr-progress')) document.getElementById('qr-progress').style.width = (secLeft / 60) * 100 + '%';
         };
-
         updateQr();
         qrInterval = setInterval(updateQr, 1000);
       }
