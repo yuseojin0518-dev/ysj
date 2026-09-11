@@ -36,7 +36,7 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
 
-      // 전역 변수 할당 (다른 스크립트 블록에서 사용)
+      // 전역 변수 할당
       window.db = db;
       window.auth = auth;
       window.firebaseModules = { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc };
@@ -46,13 +46,11 @@
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col items-center justify-start selection:bg-blue-200">
 
-    <!-- 알림창 (Toast) UI -->
     <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 px-6 py-3.5 rounded-2xl shadow-xl z-[999] text-white font-bold transition-all duration-300 opacity-0 pointer-events-none text-sm flex items-center gap-2">
       <span id="toast-icon"></span>
       <span id="toast-msg"></span>
     </div>
 
-    <!-- 메인 앱 컨테이너 (PC는 넓게, 모바일은 꽉 차게) -->
     <div id="app" class="w-full max-w-full md:max-w-6xl min-h-screen flex flex-col bg-white md:bg-transparent shadow-sm md:shadow-none md:p-6 md:py-10">
       <div id="loading-screen" class="flex-1 flex flex-col items-center justify-center p-8 space-y-4 bg-white rounded-3xl md:shadow-sm">
         <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
@@ -67,15 +65,12 @@
       let unsubscribeUsers = null;
       let unsubscribeAttendance = null;
 
-      // 오늘 날짜 및 요일 구하기
       const getTodayStr = () => {
         const d = new Date();
         return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
       };
-      // 0:일, 1:월, 2:화, 3:수, 4:목, 5:금, 6:토
       const getTodayDayOfWeek = () => new Date().getDay(); 
 
-      // 토스트 메시지 함수
       function showToast(msg, type = 'success') {
         const toast = document.getElementById('toast');
         document.getElementById('toast-msg').textContent = msg;
@@ -90,20 +85,18 @@
 
         try { await window.auth.signInAnonymously(auth); } catch (e) { console.error("Auth error", e); }
 
-        // 학생 명단 실시간 동기화 (루트 컬렉션 'meal_users' 사용)
         const usersRef = collection(db, 'meal_users');
         unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
           allUsers = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
           if (currentUser) {
             const updatedUser = allUsers.find(u => u.id === currentUser.id);
-            if(updatedUser) currentUser = updatedUser; // 내 정보 갱신 (비밀번호 등)
+            if(updatedUser) currentUser = updatedUser; 
             renderApp();
           } else {
             renderLogin();
           }
         });
 
-        // 오늘 출석 명단 실시간 동기화
         const todayStr = getTodayStr();
         const attRef = collection(db, `meal_attendance_${todayStr}`);
         unsubscribeAttendance = onSnapshot(attRef, (snapshot) => {
@@ -132,7 +125,7 @@
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-gray-500 mb-2 ml-1 uppercase tracking-wider">비밀번호</label>
-                  <input type="password" id="login-pw" class="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-gray-800 transition text-lg" placeholder="비밀번호 입력" required />
+                  <input type="password" id="login-pw" class="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-gray-800 transition text-lg" placeholder="비밀번호 입력 (초기: 0000)" required />
                 </div>
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-extrabold text-lg py-4.5 rounded-2xl shadow-lg shadow-blue-200 transition mt-4">
                   로그인
@@ -147,7 +140,6 @@
           const id = document.getElementById('login-id').value.trim();
           const pw = document.getElementById('login-pw').value.trim();
 
-          // 관리자 하드코딩
           if (id === 'ysj0518' && pw === 'ysj0518!') {
             currentUser = { role: 'admin', name: '관리자 선생님', id: 'ysj0518' };
             renderApp();
@@ -259,8 +251,8 @@
                       <input type="password" id="new-pw" placeholder="비밀번호 설정" class="w-full px-5 py-3.5 bg-white rounded-xl border border-gray-200 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" required />
                       
                       <div class="pt-2">
-                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">자습 요일 선택 (월~목)</label>
-                        <div class="grid grid-cols-4 gap-2">
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">자습 요일 선택 (월~금)</label>
+                        <div class="grid grid-cols-5 gap-2">
                           <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-sm cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
                             <input type="checkbox" name="study-day" value="1" class="hidden" checked /> 월
                           </label>
@@ -273,6 +265,9 @@
                           <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-sm cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
                             <input type="checkbox" name="study-day" value="4" class="hidden" checked /> 목
                           </label>
+                          <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-sm cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
+                            <input type="checkbox" name="study-day" value="5" class="hidden" checked /> 금
+                          </label>
                         </div>
                       </div>
                       <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition mt-2">등록하기</button>
@@ -282,7 +277,12 @@
 
                 <!-- 등록된 학생 명단 -->
                 <div class="bg-gray-50/60 p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 h-full flex flex-col">
-                  <h2 class="font-extrabold text-gray-900 mb-5 text-lg">전체 학생 명단 (<span id="student-count" class="text-blue-600">0</span>명)</h2>
+                  <div class="flex justify-between items-center mb-5">
+                    <h2 class="font-extrabold text-gray-900 text-lg">학생 명단 (<span id="student-count" class="text-blue-600">0</span>명)</h2>
+                    <button id="bulk-add-btn" onclick="executeBulkAdd()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm font-bold rounded-xl shadow-md transition whitespace-nowrap">
+                      요청하신 57명 한 번에 등록하기
+                    </button>
+                  </div>
                   <div id="student-list-container" class="space-y-3 max-h-[700px] overflow-y-auto pr-2 flex-1"></div>
                 </div>
               </div>
@@ -312,6 +312,7 @@
             </div>
           </div>
 
+          <!-- 수정 모달 팝업 -->
           <div id="edit-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm transition-opacity">
             <div class="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95">
               <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
@@ -338,8 +339,8 @@
                 </div>
                 
                 <div>
-                  <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 mt-2">자습 요일 재설정 (월~목)</label>
-                  <div class="grid grid-cols-4 gap-2">
+                  <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 mt-2">자습 요일 재설정 (월~금)</label>
+                  <div class="grid grid-cols-5 gap-2">
                     <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-sm cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
                       <input type="checkbox" name="edit-study-day" value="1" class="hidden" /> 월
                     </label>
@@ -351,6 +352,9 @@
                     </label>
                     <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-sm cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
                       <input type="checkbox" name="edit-study-day" value="4" class="hidden" /> 목
+                    </label>
+                    <label class="flex items-center justify-center gap-1.5 p-3 bg-white border border-gray-200 rounded-xl font-bold text-sm cursor-pointer hover:bg-blue-50 transition has-[:checked]:bg-blue-600 has-[:checked]:text-white has-[:checked]:border-blue-600">
+                      <input type="checkbox" name="edit-study-day" value="5" class="hidden" /> 금
                     </label>
                   </div>
                 </div>
@@ -368,6 +372,69 @@
         updateAdminStatsAndLists();
       }
 
+      window.executeBulkAdd = async function() {
+        const btn = document.getElementById('bulk-add-btn');
+        if(!btn) return;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 등록 중... 잠시 대기해주세요.';
+        btn.classList.replace('bg-indigo-600', 'bg-gray-400');
+
+        const presetData = [
+          {id:"20105", name:"김태윤", days:[1,3,5]}, {id:"20201", name:"고윤형", days:[2,3,5]},
+          {id:"20205", name:"김성우", days:[2,4,5]}, {id:"20215", name:"안원준", days:[1,2,3,4,5]},
+          {id:"20217", name:"이세원", days:[2,3,4]}, {id:"20221", name:"조민규", days:[2,3,4]},
+          {id:"20306", name:"김재준", days:[1,2,4,5]}, {id:"20308", name:"김종윤", days:[1,2,3,4,5]},
+          {id:"20309", name:"김준", days:[1,3,4,5]}, {id:"20318", name:"이대윤", days:[2,4,5]},
+          {id:"20321", name:"임지훈", days:[1,2]}, {id:"20324", name:"지송민", days:[1,2,4,5]},
+          {id:"20402", name:"김민성", days:[1,4]}, {id:"20411", name:"박하용", days:[2,4]},
+          {id:"20417", name:"정재윤", days:[1,2,4,5]}, {id:"20421", name:"최이헌", days:[3]},
+          {id:"20422", name:"최준영", days:[1,3,5]}, {id:"20501", name:"강지성", days:[1,2,3,4,5]},
+          {id:"20503", name:"김우진", days:[1,3,5]}, {id:"20508", name:"남산", days:[1,5]},
+          {id:"20511", name:"박기려", days:[2]}, {id:"20514", name:"손창민", days:[2,3,4,5]},
+          {id:"20516", name:"양희수", days:[2,4]}, {id:"20517", name:"윤재호", days:[2,3,4,5]},
+          {id:"20518", name:"이민호", days:[1,3,5]}, {id:"20527", name:"황유석", days:[2]},
+          {id:"20611", name:"도현일", days:[1,2,3,4]}, {id:"20614", name:"송유안", days:[5]},
+          {id:"20615", name:"안승현", days:[1,2,3,4]}, {id:"20620", name:"정민준", days:[3]},
+          {id:"20621", name:"조종식", days:[1,2,3]}, {id:"20717", name:"양이현", days:[1,4]},
+          {id:"20718", name:"이학선", days:[1,5]}, {id:"20721", name:"정구연", days:[1,2,3,4,5]},
+          {id:"20801", name:"고욱", days:[1,2,3,4,5]}, {id:"20806", name:"박건우", days:[5]},
+          {id:"20807", name:"박시완", days:[3]}, {id:"20812", name:"유현동", days:[2,5]},
+          {id:"20818", name:"조민건", days:[1,3,5]}, {id:"20822", name:"최태성", days:[1,2,3,4]},
+          {id:"20823", name:"한준표", days:[1,3,5]}, {id:"20825", name:"허경모", days:[1]},
+          {id:"20901", name:"고성우", days:[2,4]}, {id:"20906", name:"민창희", days:[1,2,3,4,5]},
+          {id:"20908", name:"서재민", days:[1,3,5]}, {id:"20910", name:"안지석", days:[3,4,5]},
+          {id:"20911", name:"윤종혁", days:[2,3,4]}, {id:"20912", name:"이승우", days:[2,4]},
+          {id:"20918", name:"정정진", days:[2,4]}, {id:"20920", name:"최근우", days:[1,3,4,5]},
+          {id:"20921", name:"최승혁", days:[2]}, {id:"21002", name:"김강민", days:[2,3,4]},
+          {id:"21006", name:"백건우", days:[2,4]}, {id:"21008", name:"심재윤", days:[2,4,5]},
+          {id:"21015", name:"장승호", days:[1,2,3,4,5]}, {id:"21016", name:"조연후", days:[1,3,5]},
+          {id:"21023", name:"홍채호", days:[2,4]}
+        ];
+
+        let addedCount = 0;
+        try {
+          const { db, firebaseModules } = window;
+          const { collection, addDoc } = firebaseModules;
+          
+          for (const s of presetData) {
+            // 중복 학생이 없으면 추가
+            if (!allUsers.some(u => u.id === s.id)) {
+              await addDoc(collection(db, 'meal_users'), {
+                id: s.id, name: s.name, password: '0000', role: 'student', studyDays: s.days
+              });
+              addedCount++;
+            }
+          }
+          showToast(`총 ${addedCount}명의 학생이 자동 등록되었습니다!`);
+          btn.classList.add('hidden'); // 성공 시 버튼 숨기기
+        } catch (err) {
+          showToast('등록 중 오류가 발생했습니다.', 'error');
+          btn.disabled = false;
+          btn.innerHTML = '다시 시도하기';
+          btn.classList.replace('bg-gray-400', 'bg-indigo-600');
+        }
+      };
+
       function switchAdminTab(tabName) {
         window.activeAdminTab = tabName;
         renderAdminDashboard();
@@ -380,7 +447,6 @@
           showToast('로그아웃 되었습니다.');
         });
 
-        // 1. 신규 학생 개별 등록
         const addForm = document.getElementById('add-student-form');
         if (addForm) {
           addForm.addEventListener('submit', async (e) => {
@@ -406,7 +472,6 @@
           });
         }
 
-        // 2. 학생 정보 수정 저장
         const editForm = document.getElementById('edit-student-form');
         if (editForm) {
           editForm.addEventListener('submit', async (e) => {
@@ -426,18 +491,15 @@
           });
         }
 
-        // 3. 통계 카드 탭 클릭
         document.getElementById('card-target')?.addEventListener('click', () => { window.statViewMode = 'target'; updateAdminStatsAndLists(); });
         document.getElementById('card-ate')?.addEventListener('click', () => { window.statViewMode = 'ate'; updateAdminStatsAndLists(); });
         document.getElementById('card-not-ate')?.addEventListener('click', () => { window.statViewMode = 'notAte'; updateAdminStatsAndLists(); });
 
-        // 4. 카메라 스캐너 토글
         document.getElementById('toggle-cam-btn')?.addEventListener('click', () => {
           if (window.isScanning) stopCamera(); else startCamera();
         });
       }
 
-      // 학생 삭제 및 출석 취소 로직
       window.deleteStudent = async function(docId) {
         if (!confirm('정말 이 학생을 삭제하시겠습니까? (복구 불가)')) return;
         try {
@@ -478,6 +540,10 @@
         const students = allUsers.filter(u => u.role === 'student');
         if(document.getElementById('student-count')) document.getElementById('student-count').textContent = students.length;
 
+        // 오늘 57명 목록이 전부 등록되어 있으면 일괄등록 버튼 감추기
+        const bulkBtn = document.getElementById('bulk-add-btn');
+        if (bulkBtn && students.length >= 57) bulkBtn.classList.add('hidden');
+
         const dayOfWeek = getTodayDayOfWeek();
         const targetStudents = students.filter(s => s.studyDays && s.studyDays.includes(dayOfWeek));
         
@@ -490,7 +556,6 @@
         if (document.getElementById('stat-ate-count')) document.getElementById('stat-ate-count').textContent = ateCount;
         if (document.getElementById('stat-notate-count')) document.getElementById('stat-notate-count').textContent = notAteCount;
 
-        // 통계 카드 스타일링
         const cTarget = document.getElementById('card-target');
         const cAte = document.getElementById('card-ate');
         const cNotAte = document.getElementById('card-not-ate');
@@ -500,16 +565,17 @@
           cNotAte.className = `p-6 md:p-8 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition border shadow-sm select-none ${window.statViewMode === 'notAte' ? 'bg-gray-900 text-white border-gray-900 shadow-gray-300 ring-[3px] ring-gray-400' : 'bg-white text-gray-800 hover:bg-gray-50 border-gray-100'}`;
         }
 
-        // 전체 학생 명단 렌더링
         const studentListEl = document.getElementById('student-list-container');
         if (studentListEl) {
-          studentListEl.innerHTML = students.length === 0 ? `<p class="text-sm font-bold text-gray-400 text-center py-10">등록된 학생이 없습니다.</p>` : 
-            students.map(s => `
+          // 이름순(가나다순)으로 정렬하여 표시
+          const sortedStudents = [...students].sort((a,b) => a.name.localeCompare(b.name));
+          studentListEl.innerHTML = sortedStudents.length === 0 ? `<p class="text-sm font-bold text-gray-400 text-center py-10">등록된 학생이 없습니다.</p>` : 
+            sortedStudents.map(s => `
               <div class="flex justify-between items-center p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition">
                 <div>
                   <p class="font-extrabold text-base text-gray-900">${s.name} <span class="text-xs font-semibold text-gray-400 ml-1 bg-gray-100 px-2 py-0.5 rounded-md">${s.id}</span></p>
                   <p class="text-xs font-bold text-blue-600 mt-1.5 flex gap-1">
-                    ${[1,2,3,4].map(d => `<span class="${(s.studyDays||[]).includes(d) ? 'bg-blue-100 text-blue-700 px-1.5 rounded' : 'text-gray-300'}">${['','월','화','수','목'][d]}</span>`).join('')}
+                    ${[1,2,3,4,5].map(d => `<span class="${(s.studyDays||[]).includes(d) ? 'bg-blue-100 text-blue-700 px-1.5 rounded' : 'text-gray-300'}">${['','월','화','수','목','금'][d]}</span>`).join('')}
                   </p>
                 </div>
                 <div class="flex gap-2">
@@ -520,7 +586,6 @@
             `).join('');
         }
 
-        // 통계 상세 명단 렌더링
         const listTitleEl = document.getElementById('stat-list-title');
         const listContainerEl = document.getElementById('stat-list-container');
         if (listTitleEl && listContainerEl) {
@@ -608,7 +673,6 @@
           const student = allUsers.find(u => u.role === 'student' && u.id === studentId);
           if (!student) { showToast('등록되지 않은 학생입니다.', 'error'); return; }
 
-          // 오늘 자습 대상인지 검증
           const dayOfWeek = getTodayDayOfWeek();
           if (!(student.studyDays || []).includes(dayOfWeek)) { 
             showToast(`오늘은 ${student.name} 학생의 자습 요일이 아닙니다.`, 'error'); return; 
@@ -753,7 +817,6 @@
       };
       window.closeStudentPwModal = function() { document.getElementById('student-pw-modal').classList.add('hidden'); };
       
-      // 학생 비밀번호 변경 처리 로직
       window.changeStudentPassword = async function(e) {
         e.preventDefault();
         const oldPw = document.getElementById('pw-old').value;
@@ -770,7 +833,7 @@
           await updateDoc(doc(db, 'meal_users', currentUser.docId), { password: newPw });
           
           showToast('비밀번호가 성공적으로 변경되었습니다! 🎉');
-          currentUser.password = newPw; // 클라이언트 정보 즉시 갱신
+          currentUser.password = newPw; 
           closeStudentPwModal();
         } catch (err) { showToast('비밀번호 변경 실패. 다시 시도해주세요.', 'error'); }
       };
@@ -788,7 +851,6 @@
         const updateQr = () => {
           if (!currentUser || todayAttendance.some(a => a.studentId === currentUser.id)) { clearInterval(qrInterval); return; }
           
-          // 현재 분(minute) 단위로 암호화하여 1분간만 유효한 QR 생성 (캡처본 차단 로직)
           const currentMinute = Math.floor(Date.now() / 60000);
           const encoded = btoa(`${currentUser.id}|${currentMinute}`);
           const url = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(encoded)}&margin=0`;
